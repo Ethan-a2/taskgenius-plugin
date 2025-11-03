@@ -5,7 +5,6 @@ import {
 	Decoration,
 	DecorationSet,
 	WidgetType,
-	MatchDecorator,
 	PluginValue,
 	PluginSpec,
 } from "@codemirror/view";
@@ -19,31 +18,56 @@ import {
 } from "obsidian";
 import TaskProgressBarPlugin from "../../index";
 import { Annotation } from "@codemirror/state";
-// @ts-ignore - This import is necessary but TypeScript can't find it
-import { syntaxTree, tokenClassNodeProp } from "@codemirror/language";
 import { t } from "../../translations/helper";
 import { DatePickerPopover } from "@/components/ui/date-picker/DatePickerPopover";
 import { DatePickerModal } from "@/components/ui/date-picker/DatePickerModal";
+import {
+	DateMatch,
+	WidgetInfo,
+	isInsideTaskLine,
+	findTaskLineAt,
+	findDatesInTaskLine,
+	generateWidgetId,
+	isValidPosition,
+	safeGetLine,
+	getAffectedLineNumbers,
+	shouldSkipRendering,
+} from "./date-picker-utils";
+
 export const dateChangeAnnotation = Annotation.define();
 
+/**
+ * Widget for rendering date picker in tasks
+ */
 class DatePickerWidget extends WidgetType {
+	readonly lineNumber: number;
+	readonly offsetInLine: number;
+
 	constructor(
 		readonly app: App,
 		readonly plugin: TaskProgressBarPlugin,
 		readonly view: EditorView,
-		readonly from: number,
-		readonly to: number,
-		readonly currentDate: string,
-		readonly dateMark: string
+		readonly match: DateMatch,
+		readonly id: string
 	) {
 		super();
+		// Store line context for precise repositioning
+		try {
+			const line = view.state.doc.lineAt(match.from);
+			this.lineNumber = line.number;
+			this.offsetInLine = match.from - line.from;
+		} catch (e) {
+			console.warn("Error calculating widget position:", e);
+			this.lineNumber = 1;
+			this.offsetInLine = 0;
+		}
 	}
 
 	eq(other: DatePickerWidget): boolean {
 		return (
-			this.from === other.from &&
-			this.to === other.to &&
-			this.currentDate === other.currentDate
+			this.id === other.id &&
+			this.match.dateText === other.match.dateText &&
+			this.match.marker === other.match.marker
 		);
 	}
 
@@ -53,12 +77,13 @@ class DatePickerWidget extends WidgetType {
 				cls: "date-picker-widget",
 				attr: {
 					"aria-label": "Task Date",
+					"data-widget-id": this.id,
 				},
 			});
 
 			const dateText = createSpan({
 				cls: "task-date-text",
-				text: this.currentDate,
+				text: this.match.fullMatch,
 			});
 
 			// Handle click to show date menu
@@ -75,7 +100,7 @@ class DatePickerWidget extends WidgetType {
 			// Return a fallback element to prevent crashes
 			const fallback = createEl("span", {
 				cls: "date-picker-widget-error",
-				text: this.currentDate,
+				text: this.match.fullMatch,
 			});
 			return fallback;
 		}
@@ -83,10 +108,7 @@ class DatePickerWidget extends WidgetType {
 
 	private showDateMenu(e: MouseEvent) {
 		try {
-			// Extract current date from the widget text
-			const currentDateMatch =
-				this.currentDate.match(/\d{4}-\d{2}-\d{2}/);
-			const currentDate = currentDateMatch ? currentDateMatch[0] : null;
+			const currentDate = this.match.dateText;
 
 			if (Platform.isDesktop) {
 				// Desktop environment - show Popover
@@ -94,7 +116,7 @@ class DatePickerWidget extends WidgetType {
 					this.app,
 					this.plugin,
 					currentDate || undefined,
-					this.dateMark
+					this.match.marker
 				);
 
 				popover.onDateSelected = (date: string | null) => {
@@ -116,7 +138,7 @@ class DatePickerWidget extends WidgetType {
 					this.app,
 					this.plugin,
 					currentDate || undefined,
-					this.dateMark
+					this.match.marker
 				);
 
 				modal.onDateSelected = (date: string | null) => {
@@ -135,51 +157,58 @@ class DatePickerWidget extends WidgetType {
 		}
 	}
 
-	private escapeRegex(str: string): string {
-		return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-	}
-
-	// Resolve the current range of this widget's date in the live document
+	/**
+	 * Resolve the current range of this widget's date in the live document
+	 * Uses line number and offset for precise repositioning
+	 */
 	private resolveCurrentRange(): { from: number; to: number } | null {
 		try {
 			const state = this.view?.state;
 			if (!state) return null;
-			const line = state.doc.lineAt(this.from);
-			const text = line.text;
-			const useDataviewFormat =
-				this.plugin.settings.preferMetadataFormat === "dataview";
-			if (useDataviewFormat) {
-				// Match [field:: YYYY-MM-DD] on this line only
-				const regex = /\[[^\]]+::\s*\d{4}-\d{2}-\d{2}\]/g;
-				let m: RegExpExecArray | null;
-				while ((m = regex.exec(text)) !== null) {
-					const absFrom = line.from + m.index;
-					const absTo = absFrom + m[0].length;
-					// Prefer the one starting with the same prefix as dateMark
-					if (
-						m[0].startsWith(this.dateMark) ||
-						(this.from >= absFrom && this.from <= absTo)
-					) {
-						return { from: absFrom, to: absTo };
-					}
+
+			// 1. Get the line by number
+			const line = safeGetLine(state.doc, this.lineNumber);
+			if (!line) {
+				return null;
+			}
+
+			// 2. Check if it's still a task line
+			const taskLine = findTaskLineAt(state, line.from);
+			if (!taskLine) {
+				return null;
+			}
+
+			// 3. Find all dates in this line
+			const dates = findDatesInTaskLine(
+				line.text,
+				line.from,
+				this.plugin.settings.preferMetadataFormat === "dataview"
+			);
+
+			// 4. Find the date that matches our marker and is closest to our offset
+			let bestMatch: DateMatch | null = null;
+			let minOffsetDiff = Infinity;
+
+			for (const date of dates) {
+				// Must match the same marker
+				if (date.marker !== this.match.marker) {
+					continue;
 				}
-			} else {
-				// Match the specific emoji marker followed by date
-				const pattern = new RegExp(
-					`${this.escapeRegex(
-						this.dateMark
-					)}\\s*\\d{4}-\\d{2}-\\d{2}`,
-					"g"
-				);
-				let m: RegExpExecArray | null;
-				while ((m = pattern.exec(text)) !== null) {
-					const absFrom = line.from + m.index;
-					const absTo = absFrom + m[0].length;
-					if (this.from >= absFrom && this.from <= absTo) {
-						return { from: absFrom, to: absTo };
-					}
+
+				const currentOffset = date.from - line.from;
+				const offsetDiff = Math.abs(currentOffset - this.offsetInLine);
+
+				// Use the closest match (with tolerance)
+				if (offsetDiff < minOffsetDiff && offsetDiff < 10) {
+					bestMatch = date;
+					minOffsetDiff = offsetDiff;
 				}
 			}
+
+			if (bestMatch) {
+				return { from: bestMatch.from, to: bestMatch.to };
+			}
+
 			return null;
 		} catch (e) {
 			console.warn("Failed to resolve current date range:", e);
@@ -195,7 +224,7 @@ class DatePickerWidget extends WidgetType {
 				return;
 			}
 
-			// Re-resolve the current range in case the document changed since widget creation
+			// Re-resolve the current range
 			const range = this.resolveCurrentRange();
 			if (!range) {
 				console.warn(
@@ -203,6 +232,7 @@ class DatePickerWidget extends WidgetType {
 				);
 				return;
 			}
+
 			// Extra safety: ensure single-line range
 			const fromLine = this.view.state.doc.lineAt(range.from);
 			const toLine = this.view.state.doc.lineAt(range.to);
@@ -218,10 +248,10 @@ class DatePickerWidget extends WidgetType {
 			if (date) {
 				if (useDataviewFormat) {
 					// For dataview format: reconstruct [xxx:: date] pattern
-					newText = `${this.dateMark}${date}]`;
+					newText = `${this.match.marker}${date}]`;
 				} else {
 					// For tasks format: emoji + space + date
-					newText = `${this.dateMark} ${date}`;
+					newText = `${this.match.marker} ${date}`;
 				}
 			}
 
@@ -236,6 +266,9 @@ class DatePickerWidget extends WidgetType {
 	}
 }
 
+/**
+ * Date picker view plugin implementation
+ */
 export function datePickerExtension(app: App, plugin: TaskProgressBarPlugin) {
 	// Don't enable if the setting is off
 	if (!plugin.settings.enableDatePicker) {
@@ -246,61 +279,8 @@ export function datePickerExtension(app: App, plugin: TaskProgressBarPlugin) {
 		public readonly view: EditorView;
 		public readonly plugin: TaskProgressBarPlugin;
 		decorations: DecorationSet = Decoration.none;
-		private lastUpdate: number = 0;
-		private readonly updateThreshold: number = 50; // Increased threshold for better stability
 		public isDestroyed: boolean = false;
-
-		// Date matcher
-		private readonly dateMatch = new MatchDecorator({
-			regexp: this.createDateRegex(plugin.settings.preferMetadataFormat),
-			decorate: (
-				add,
-				from: number,
-				to: number,
-				match: RegExpExecArray,
-				view: EditorView
-			) => {
-				try {
-					if (!this.shouldRender(view, from, to)) {
-						return;
-					}
-
-					const useDataviewFormat =
-						this.plugin.settings.preferMetadataFormat ===
-						"dataview";
-					let fullMatch: string;
-					let dateMark: string;
-
-					if (useDataviewFormat) {
-						// For dataview format: match[0] is full match, match[1] is [xxx::, match[2] is date
-						fullMatch = match[0]; // e.g., "[start:: 2024-01-01]"
-						dateMark = match[1]; // e.g., "[start:: "
-					} else {
-						// For tasks format: match[0] is full match, match[1] is emoji, match[2] is date
-						fullMatch = match[0]; // e.g., "📅 2024-01-01"
-						dateMark = match[1]; // e.g., "📅"
-					}
-
-					add(
-						from,
-						to,
-						Decoration.replace({
-							widget: new DatePickerWidget(
-								app,
-								plugin,
-								view,
-								from,
-								to,
-								fullMatch,
-								dateMark
-							),
-						})
-					);
-				} catch (error) {
-					console.warn("Error decorating date:", error);
-				}
-			},
-		});
+		private widgetRegistry: Map<string, WidgetInfo> = new Map();
 
 		constructor(view: EditorView) {
 			this.view = view;
@@ -308,66 +288,273 @@ export function datePickerExtension(app: App, plugin: TaskProgressBarPlugin) {
 			this.updateDecorations(view);
 		}
 
-		/**
-		 * Create date regex based on preferMetadataFormat setting
-		 */
-		private createDateRegex(preferMetadataFormat: string): RegExp {
-			const useDataviewFormat = preferMetadataFormat === "dataview";
-
-			if (useDataviewFormat) {
-				// For dataview format: match [xxx:: yyyy-mm-dd] pattern on a single line (no line breaks)
-				return new RegExp(
-					`(\\[[^\\]\\\n]+::\\s*)(\\d{4}-\\d{2}-\\d{2})\\]`,
-					"g"
-				);
-			} else {
-				// For tasks format: match emoji + date pattern
-				// Using Unicode property escapes to match all emojis
-				return new RegExp(
-					`([\\p{Emoji}\\p{Emoji_Modifier}\\p{Emoji_Component}\\p{Emoji_Modifier_Base}\\p{Emoji_Presentation}])\\s*(\\d{4}-\\d{2}-\\d{2})`,
-					"gu"
-				);
-			}
-		}
-
 		update(update: ViewUpdate): void {
 			if (this.isDestroyed) return;
 
 			try {
-				// More aggressive updates to handle content changes
-				if (
-					update.docChanged ||
-					update.viewportChanged ||
-					update.selectionSet ||
-					update.transactions.some((tr) =>
-						tr.annotation(dateChangeAnnotation)
-					)
-				) {
-					// Throttle updates to avoid performance issues with large documents
-					const now = Date.now();
-					if (now - this.lastUpdate > this.updateThreshold) {
-						this.lastUpdate = now;
-						this.updateDecorations(update.view, update);
-					} else {
-						// Schedule an update in the near future to ensure rendering
-						setTimeout(() => {
-							if (this.view && !this.isDestroyed) {
-								this.updateDecorations(this.view);
-							}
-						}, this.updateThreshold);
-					}
+				// Handle selection changes immediately to hide widgets near cursor
+				if (update.selectionSet || update.viewportChanged) {
+					// Rebuild decorations to handle cursor overlap
+					this.decorations = this.buildDecorationsFromRegistry();
 				}
+
+				// Only handle document changes
+				if (!update.docChanged) {
+					return;
+				}
+
+				// Perform immediate update (no debouncing)
+				// This prevents widgets from appearing in wrong positions during fast typing
+				this.performIncrementalUpdate(update);
 			} catch (error) {
 				console.error("Error in date picker update:", error);
+				this.decorations = Decoration.none;
 			}
 		}
 
-		destroy(): void {
-			this.isDestroyed = true;
-			this.decorations = Decoration.none;
+		/**
+		 * Perform incremental update based on changes
+		 */
+		private performIncrementalUpdate(update: ViewUpdate): void {
+			try {
+				// 1. Map existing widgets to new positions
+				const mappedRegistry = this.mapExistingWidgets(update.changes);
+
+				// 2. Get affected line numbers
+				const affectedLines = getAffectedLineNumbers(
+					update.state,
+					update.changes
+				);
+
+				// 3. Scan affected lines for dates
+				const newWidgets = this.scanLines(
+					Array.from(affectedLines),
+					update.view
+				);
+
+				// 4. Merge registries
+				this.widgetRegistry = this.mergeWidgetMaps(
+					mappedRegistry,
+					newWidgets,
+					affectedLines
+				);
+
+				// 5. Build decorations
+				this.decorations = this.buildDecorationsFromRegistry();
+			} catch (e) {
+				console.warn(
+					"Error in incremental update, falling back to full scan:",
+					e
+				);
+				this.fullScan(this.view);
+			}
 		}
 
-		updateDecorations(view: EditorView, update?: ViewUpdate) {
+		/**
+		 * Map existing widgets to new positions using ChangeSet
+		 */
+		private mapExistingWidgets(
+			changes: ViewUpdate["changes"]
+		): Map<string, WidgetInfo> {
+			const mapped = new Map<string, WidgetInfo>();
+
+			for (const [id, info] of this.widgetRegistry) {
+				try {
+					// Map positions
+					const newFrom = changes.mapPos(info.match.from, 1);
+					const newTo = changes.mapPos(info.match.to, 1);
+
+					// Validate new position
+					if (!isValidPosition(this.view.state, newFrom, newTo)) {
+						continue;
+					}
+
+					// Create updated match
+					const newMatch: DateMatch = {
+						...info.match,
+						from: newFrom,
+						to: newTo,
+					};
+
+					// Update line number
+					const newLine = this.view.state.doc.lineAt(newFrom);
+
+					mapped.set(id, {
+						...info,
+						match: newMatch,
+						lineNumber: newLine.number,
+						offsetInLine: newFrom - newLine.from,
+						lastValidated: Date.now(),
+					});
+				} catch (e) {
+					// Mapping failed, discard this widget
+					continue;
+				}
+			}
+
+			return mapped;
+		}
+
+		/**
+		 * Scan specific lines for date widgets
+		 */
+		private scanLines(
+			lineNumbers: number[],
+			view: EditorView
+		): Map<string, WidgetInfo> {
+			const widgets = new Map<string, WidgetInfo>();
+
+			for (const lineNum of lineNumbers) {
+				const line = safeGetLine(view.state.doc, lineNum);
+				if (!line) {
+					continue;
+				}
+
+				// Check if it's a task line
+				const taskLine = findTaskLineAt(view.state, line.from);
+				if (!taskLine) {
+					continue;
+				}
+
+				// Skip code blocks and frontmatter
+				if (shouldSkipRendering(view.state, line.from, line.to)) {
+					continue;
+				}
+
+				// Find dates in this line
+				const dates = findDatesInTaskLine(
+					taskLine.text,
+					taskLine.from,
+					this.plugin.settings.preferMetadataFormat === "dataview"
+				);
+
+				// Create widgets for each date
+				for (const match of dates) {
+					const id = generateWidgetId(match, lineNum);
+					const widget = new DatePickerWidget(
+						app,
+						plugin,
+						view,
+						match,
+						id
+					);
+
+					widgets.set(id, {
+						id,
+						match,
+						lineNumber: lineNum,
+						offsetInLine: match.from - line.from,
+						lastValidated: Date.now(),
+					});
+				}
+			}
+
+			return widgets;
+		}
+
+		/**
+		 * Merge widget maps, with new widgets replacing old ones in affected lines
+		 */
+		private mergeWidgetMaps(
+			mapped: Map<string, WidgetInfo>,
+			newWidgets: Map<string, WidgetInfo>,
+			affectedLines: Set<number>
+		): Map<string, WidgetInfo> {
+			const merged = new Map(mapped);
+
+			// Remove widgets from affected lines
+			for (const [id, info] of merged) {
+				if (affectedLines.has(info.lineNumber)) {
+					merged.delete(id);
+				}
+			}
+
+			// Add new widgets
+			for (const [id, info] of newWidgets) {
+				merged.set(id, info);
+			}
+
+			return merged;
+		}
+
+		/**
+		 * Build decoration set from widget registry
+		 */
+		private buildDecorationsFromRegistry(): DecorationSet {
+			const decorations: Array<{
+				from: number;
+				to: number;
+				decoration: Decoration;
+			}> = [];
+
+			for (const info of this.widgetRegistry.values()) {
+				try {
+					// Validate position
+					if (
+						!isValidPosition(
+							this.view.state,
+							info.match.from,
+							info.match.to
+						)
+					) {
+						continue;
+					}
+
+					// Skip if cursor is inside
+					// if (!this.shouldRenderAt(info.match.from, info.match.to)) {
+					// 	continue;
+					// }
+
+					// Create widget
+					const widget = new DatePickerWidget(
+						app,
+						plugin,
+						this.view,
+						info.match,
+						info.id
+					);
+
+					decorations.push({
+						from: info.match.from,
+						to: info.match.to,
+						decoration: Decoration.replace({ widget }),
+					});
+				} catch (e) {
+					console.warn("Error building decoration:", e);
+					continue;
+				}
+			}
+
+			// Sort by position
+			decorations.sort((a, b) => a.from - b.from);
+
+			return Decoration.set(
+				decorations.map((d) => d.decoration.range(d.from, d.to)),
+				true
+			);
+		}
+
+		/**
+		 * Full document scan (fallback)
+		 */
+		private fullScan(view: EditorView): void {
+			this.widgetRegistry.clear();
+
+			// Scan all lines
+			const lineCount = view.state.doc.lines;
+			const lineNumbers: number[] = [];
+			for (let i = 1; i <= lineCount; i++) {
+				lineNumbers.push(i);
+			}
+
+			this.widgetRegistry = this.scanLines(lineNumbers, view);
+			this.decorations = this.buildDecorationsFromRegistry();
+		}
+
+		/**
+		 * Update decorations (initial load)
+		 */
+		updateDecorations(view: EditorView): void {
 			if (this.isDestroyed) return;
 
 			// Only apply in live preview mode
@@ -377,76 +564,67 @@ export function datePickerExtension(app: App, plugin: TaskProgressBarPlugin) {
 			}
 
 			try {
-				// Check if we can incrementally update, otherwise do a full recreation
-				if (update && !update.docChanged && this.decorations.size > 0) {
-					this.decorations = this.dateMatch.updateDeco(
-						update,
-						this.decorations
-					);
-				} else {
-					this.decorations = this.dateMatch.createDeco(view);
-				}
+				this.fullScan(view);
 			} catch (e) {
-				console.warn(
-					"Error updating date decorations, clearing decorations",
-					e
-				);
-				// Clear decorations on error to prevent crashes
+				console.warn("Error updating date decorations:", e);
 				this.decorations = Decoration.none;
 			}
+		}
+
+		destroy(): void {
+			this.isDestroyed = true;
+			this.decorations = Decoration.none;
+			this.widgetRegistry.clear();
 		}
 
 		isLivePreview(state: EditorView["state"]): boolean {
 			try {
 				return state.field(editorLivePreviewField);
 			} catch (error) {
-				console.warn("Error checking live preview state:", error);
 				return false;
 			}
 		}
 
-		shouldRender(
-			view: EditorView,
-			decorationFrom: number,
-			decorationTo: number
-		) {
-			// Skip checking in code blocks or frontmatter
+		/**
+		 * Check if we should render at a specific position
+		 */
+		shouldRenderAt(from: number, to: number): boolean {
 			try {
-				// Validate positions
-				if (
-					decorationFrom < 0 ||
-					decorationTo > view.state.doc.length ||
-					decorationFrom >= decorationTo
-				) {
+				const selection = this.view.state.selection;
+				const state = this.view.state;
+
+				// Get the line containing this widget
+				const widgetLine = state.doc.lineAt(from);
+
+				// Don't render if cursor is anywhere on the same line
+				// This prevents flickering and position errors during editing
+				const cursorOnSameLine = selection.ranges.some((r) => {
+					try {
+						const cursorLine = state.doc.lineAt(r.from);
+						return cursorLine.number === widgetLine.number;
+					} catch (e) {
+						return false;
+					}
+				});
+
+				if (cursorOnSameLine) {
 					return false;
 				}
 
-				const syntaxNode = syntaxTree(view.state).resolveInner(
-					decorationFrom + 1
-				);
-				const nodeProps = syntaxNode.type.prop(tokenClassNodeProp);
-
-				if (nodeProps) {
-					const props = nodeProps.split(" ");
-					if (
-						props.includes("hmd-codeblock") ||
-						props.includes("hmd-frontmatter")
-					) {
-						return false;
-					}
-				}
-
-				const selection = view.state.selection;
-
-				// Avoid rendering over selected text
-				const overlap = selection.ranges.some((r) => {
-					return !(r.to <= decorationFrom || r.from >= decorationTo);
+				// Additional check: don't render if cursor is very close (within 20 chars)
+				const tooClose = selection.ranges.some((r) => {
+					return (
+						Math.abs(r.from - from) < 20 ||
+						Math.abs(r.from - to) < 20
+					);
 				});
 
-				return !overlap && this.isLivePreview(view.state);
+				if (tooClose) {
+					return false;
+				}
+
+				return true;
 			} catch (e) {
-				// If error in checking, default to not rendering to avoid breaking the editor
-				console.warn("Error checking if date should render", e);
 				return false;
 			}
 		}
@@ -458,56 +636,10 @@ export function datePickerExtension(app: App, plugin: TaskProgressBarPlugin) {
 				if (plugin.isDestroyed) {
 					return Decoration.none;
 				}
-
-				return plugin.decorations.update({
-					filter: (
-						rangeFrom: number,
-						rangeTo: number,
-						deco: Decoration
-					) => {
-						try {
-							const widget = deco.spec?.widget;
-							if ((widget as any).error) {
-								return false;
-							}
-
-							// Validate range
-							if (
-								rangeFrom < 0 ||
-								rangeTo > plugin.view.state.doc.length ||
-								rangeFrom >= rangeTo
-							) {
-								return false;
-							}
-
-							const selection = plugin.view.state.selection;
-
-							// Remove decorations when cursor is inside them
-							for (const range of selection.ranges) {
-								if (
-									!(
-										range.to <= rangeFrom ||
-										range.from >= rangeTo
-									)
-								) {
-									return false;
-								}
-							}
-
-							return true;
-						} catch (error) {
-							console.warn(
-								"Error filtering date decoration:",
-								error
-							);
-							return false;
-						}
-					},
-				});
-			} catch (e) {
-				// If error in filtering, return current decorations to avoid breaking the editor
-				console.warn("Error filtering date decorations", e);
 				return plugin.decorations;
+			} catch (e) {
+				console.warn("Error getting decorations:", e);
+				return Decoration.none;
 			}
 		},
 	};

@@ -154,8 +154,6 @@ function handleMonitorTaskCompletionTransaction(
 		return;
 	}
 
-	console.log("monitorTaskCompletedExtension", tr.changes);
-
 	if (tr.isUserEvent("set") && tr.changes.length > 1) {
 		return tr;
 	}
