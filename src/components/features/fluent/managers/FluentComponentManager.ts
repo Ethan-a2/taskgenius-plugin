@@ -162,6 +162,14 @@ export class FluentComponentManager extends Component {
 				onTaskCompleted: (task) => {
 					if (task) this.viewHandlers.onTaskCompleted(task);
 				},
+				onTaskUpdate: async (originalTask, updatedTask) => {
+					if (originalTask && updatedTask) {
+						await this.viewHandlers.onTaskUpdate(
+							originalTask,
+							updatedTask,
+						);
+					}
+				},
 				onTaskContextMenu: (event, task) => {
 					if (task) this.viewHandlers.onTaskContextMenu(event, task);
 				},

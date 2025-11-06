@@ -572,6 +572,20 @@ export function renderTaskStatusSettingsTab(
 
 	if (settingTab.plugin.settings.enableTaskStatusSwitcher) {
 		new Setting(containerEl)
+			.setName(t("Show indicator with checkbox"))
+			.setDesc(
+				t(
+					"Show the status indicator directly next to the checkbox. When enabled, a indicator will be shown next to the checkbox."
+				)
+			)
+			.addToggle((toggle) => toggle.setValue(settingTab.plugin.settings.enableIndicatorWithCheckbox).onChange(async (value) => {
+				settingTab.plugin.settings.enableIndicatorWithCheckbox = value;
+				settingTab.applySettingsUpdate();
+			}));
+	}
+
+	if (settingTab.plugin.settings.enableTaskStatusSwitcher) {
+		new Setting(containerEl)
 			.setName(t("Task mark display style"))
 			.setDesc(
 				t(
