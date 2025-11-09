@@ -261,7 +261,7 @@
 
 .date-section-header .section-title {
 	flex: 1;
-	font-weight: 500;
+	font-weight: bolder;
 }
 
 .date-section-header .section-count {

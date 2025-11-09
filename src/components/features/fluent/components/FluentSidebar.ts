@@ -61,7 +61,7 @@ export class FluentSidebar extends Component {
 		plugin: TaskProgressBarPlugin,
 		private onNavigate: (viewId: string) => void,
 		private onProjectSelect: (projectId: string) => void,
-		collapsed = false,
+		collapsed = false
 	) {
 		super();
 		this.containerEl = containerEl;
@@ -104,8 +104,7 @@ export class FluentSidebar extends Component {
 			this.workspaceSelector = new WorkspaceSelector(
 				workspaceSelectorEl,
 				this.plugin,
-				(workspaceId: string) =>
-					this.handleWorkspaceChange(workspaceId),
+				(workspaceId: string) => this.handleWorkspaceChange(workspaceId)
 			);
 		}
 
@@ -119,7 +118,7 @@ export class FluentSidebar extends Component {
 			text: t("New Task"),
 		});
 		this.registerDomEvent(newTaskBtn, "click", () =>
-			this.onNavigate("new-task"),
+			this.onNavigate("new-task")
 		);
 
 		// Main navigation area
@@ -129,19 +128,19 @@ export class FluentSidebar extends Component {
 
 		// Primary navigation section
 		const primarySection = content.createDiv({
-			cls: "fluent-sidebar-section",
+			cls: "fluent-sidebar-section primary",
 		});
 		this.renderNavigationItems(primarySection, this.primaryItems);
 
 		// Projects section
 		const isProjectsHidden =
 			this.plugin.workspaceManager?.isSidebarComponentHidden(
-				"projects-list",
+				"projects-list"
 			);
 
 		if (!isProjectsHidden) {
 			const projectsSection = content.createDiv({
-				cls: "fluent-sidebar-section",
+				cls: "fluent-sidebar-section projects",
 			});
 			const projectHeader = projectsSection.createDiv({
 				cls: "fluent-section-header",
@@ -162,7 +161,7 @@ export class FluentSidebar extends Component {
 			// Load saved view mode preference
 			this.isTreeView =
 				this.plugin.app.loadLocalStorage(
-					"task-genius-project-view-mode",
+					"task-genius-project-view-mode"
 				) === "tree";
 			setIcon(treeToggleBtn, this.isTreeView ? "git-branch" : "list");
 
@@ -172,12 +171,12 @@ export class FluentSidebar extends Component {
 				// Save preference
 				this.plugin.app.saveLocalStorage(
 					"task-genius-project-view-mode",
-					this.isTreeView ? "tree" : "list",
+					this.isTreeView ? "tree" : "list"
 				);
 				// Update project list view mode
 				if (this.projectList) {
 					(this.projectList as ProjectList).setViewMode?.(
-						this.isTreeView,
+						this.isTreeView
 					);
 				}
 			});
@@ -192,7 +191,7 @@ export class FluentSidebar extends Component {
 			// Pass sort button to project list for menu handling
 			this.registerDomEvent(sortProjectBtn, "click", () => {
 				(this.projectList as ProjectList).showSortMenu?.(
-					sortProjectBtn,
+					sortProjectBtn
 				);
 			});
 
@@ -201,7 +200,7 @@ export class FluentSidebar extends Component {
 				projectListEl,
 				this.plugin,
 				this.onProjectSelect,
-				this.isTreeView,
+				this.isTreeView
 			);
 			// Add ProjectList as a child component
 			this.addChild(this.projectList);
@@ -210,12 +209,12 @@ export class FluentSidebar extends Component {
 		// Other views section
 		const isOtherViewsHidden =
 			this.plugin.workspaceManager?.isSidebarComponentHidden(
-				"other-views",
+				"other-views"
 			);
 
 		if (!isOtherViewsHidden) {
 			this.otherViewsSection = content.createDiv({
-				cls: "fluent-sidebar-section",
+				cls: "fluent-sidebar-section other-views",
 			});
 			this.renderOtherViewsSection();
 		}
@@ -236,7 +235,7 @@ export class FluentSidebar extends Component {
 		});
 		setIcon(wsBtn, "layers");
 		this.registerDomEvent(wsBtn, "click", (e) =>
-			this.showWorkspaceMenuWithManager(e as MouseEvent),
+			this.showWorkspaceMenuWithManager(e as MouseEvent)
 		);
 
 		// Primary view icons
@@ -261,7 +260,7 @@ export class FluentSidebar extends Component {
 		// Other view icons with overflow menu when > 5
 		if (
 			!this.plugin.workspaceManager?.isSidebarComponentHidden(
-				"other-views",
+				"other-views"
 			)
 		) {
 			const allOtherItems = this.computeOtherItems();
@@ -299,7 +298,7 @@ export class FluentSidebar extends Component {
 				});
 				setIcon(moreBtn, "more-horizontal");
 				this.registerDomEvent(moreBtn, "click", (e) =>
-					this.showOtherViewsMenu(e as MouseEvent, remainingOther),
+					this.showOtherViewsMenu(e as MouseEvent, remainingOther)
 				);
 			}
 		}
@@ -307,7 +306,7 @@ export class FluentSidebar extends Component {
 		// Projects menu button
 		if (
 			!this.plugin.workspaceManager?.isSidebarComponentHidden(
-				"projects-list",
+				"projects-list"
 			)
 		) {
 			const projBtn = this.railEl.createDiv({
@@ -316,7 +315,7 @@ export class FluentSidebar extends Component {
 			});
 			setIcon(projBtn, "folder");
 			this.registerDomEvent(projBtn, "click", (e) =>
-				this.showProjectMenu(e as MouseEvent),
+				this.showProjectMenu(e as MouseEvent)
 			);
 		}
 
@@ -327,7 +326,7 @@ export class FluentSidebar extends Component {
 		});
 		setIcon(addBtn, "plus");
 		this.registerDomEvent(addBtn, "click", () =>
-			this.onNavigate("new-task"),
+			this.onNavigate("new-task")
 		);
 	}
 
@@ -350,7 +349,7 @@ export class FluentSidebar extends Component {
 				?.maxOtherViewsBeforeOverflow ?? 5;
 		const displayedOther: FluentTaskNavigationItem[] = allOtherItems.slice(
 			0,
-			visibleCount,
+			visibleCount
 		);
 		const remainingOther: FluentTaskNavigationItem[] =
 			allOtherItems.slice(visibleCount);
@@ -364,7 +363,7 @@ export class FluentSidebar extends Component {
 			});
 			setIcon(moreBtn, "more-horizontal");
 			this.registerDomEvent(moreBtn, "click", (e) =>
-				this.showOtherViewsMenu(e as MouseEvent, remainingOther),
+				this.showOtherViewsMenu(e as MouseEvent, remainingOther)
 			);
 		}
 
@@ -400,7 +399,7 @@ export class FluentSidebar extends Component {
 			return result.filter((item) => this.isViewVisible(item.id));
 		} catch (e) {
 			return this.otherItems.filter((item) =>
-				this.isViewVisible(item.id),
+				this.isViewVisible(item.id)
 			);
 		}
 	}
@@ -426,19 +425,19 @@ export class FluentSidebar extends Component {
 				onWorkspaceSwitched(this.plugin.app, (payload) => {
 					this.currentWorkspaceId = payload.workspaceId;
 					this.render();
-				}),
+				})
 			);
 
 			this.registerEvent(
 				onWorkspaceDeleted(this.plugin.app, () => {
 					this.render();
-				}),
+				})
 			);
 
 			this.registerEvent(
 				onWorkspaceCreated(this.plugin.app, () => {
 					this.render();
-				}),
+				})
 			);
 		}
 	}
@@ -506,7 +505,7 @@ export class FluentSidebar extends Component {
 
 			constructor(
 				private plugin: TaskProgressBarPlugin,
-				private onCreated: () => void,
+				private onCreated: () => void
 			) {
 				super(plugin.app);
 			}
@@ -538,14 +537,14 @@ export class FluentSidebar extends Component {
 					const name = this.nameInput.value.trim();
 					if (name && this.plugin.workspaceManager) {
 						await this.plugin.workspaceManager.createWorkspace(
-							name,
+							name
 						);
 						new Notice(
 							t('Workspace "{{name}}" created', {
 								interpolation: {
 									name: name,
 								},
-							}),
+							})
 						);
 						this.onCreated();
 						this.close();
@@ -581,7 +580,7 @@ export class FluentSidebar extends Component {
 			const tempList: ProjectList = new ProjectList(
 				temp,
 				this.plugin,
-				this.onProjectSelect,
+				this.onProjectSelect
 			);
 			if (typeof tempList.getProjects === "function") {
 				projects = tempList.getProjects();
@@ -602,7 +601,7 @@ export class FluentSidebar extends Component {
 
 	private showOtherViewsMenu(
 		event: MouseEvent,
-		items: FluentTaskNavigationItem[],
+		items: FluentTaskNavigationItem[]
 	) {
 		const menu = new Menu();
 		items.forEach((it: FluentTaskNavigationItem) => {
@@ -626,7 +625,7 @@ export class FluentSidebar extends Component {
 
 		// Check if this is a primary view
 		const isPrimaryView = this.primaryItems.some(
-			(item) => item.id === viewId,
+			(item) => item.id === viewId
 		);
 
 		// Open in new tab
@@ -653,7 +652,7 @@ export class FluentSidebar extends Component {
 					if (viewId === "habit") {
 						(this.plugin.app as App).setting.open();
 						(this.plugin.app as App).setting.openTabById(
-							this.plugin.manifest.id,
+							this.plugin.manifest.id
 						);
 						setTimeout(() => {
 							if (this.plugin.settingTab) {
@@ -665,7 +664,7 @@ export class FluentSidebar extends Component {
 
 					// Normal handling for other views
 					const view = this.plugin.settings.viewConfiguration.find(
-						(v) => v.id === viewId,
+						(v) => v.id === viewId
 					);
 					if (!view) {
 						return;
@@ -678,11 +677,11 @@ export class FluentSidebar extends Component {
 						currentRules,
 						(
 							updatedView: ViewConfig,
-							updatedRules: ViewFilterRule,
+							updatedRules: ViewFilterRule
 						) => {
 							const currentIndex =
 								this.plugin.settings.viewConfiguration.findIndex(
-									(v) => v.id === updatedView.id,
+									(v) => v.id === updatedView.id
 								);
 							if (currentIndex !== -1) {
 								this.plugin.settings.viewConfiguration[
@@ -699,10 +698,10 @@ export class FluentSidebar extends Component {
 								// Trigger view config changed event
 								this.plugin.app.workspace.trigger(
 									"task-genius:view-config-changed",
-									{ reason: "edit", viewId: viewId },
+									{ reason: "edit", viewId: viewId }
 								);
 							}
-						},
+						}
 					).open();
 				});
 		});
@@ -716,7 +715,7 @@ export class FluentSidebar extends Component {
 					.onClick(() => {
 						const view =
 							this.plugin.settings.viewConfiguration.find(
-								(v) => v.id === viewId,
+								(v) => v.id === viewId
 							);
 						if (!view) {
 							return;
@@ -729,18 +728,18 @@ export class FluentSidebar extends Component {
 							null, // null for create mode
 							(
 								createdView: ViewConfig,
-								createdRules: ViewFilterRule,
+								createdRules: ViewFilterRule
 							) => {
 								if (
 									!this.plugin.settings.viewConfiguration.some(
-										(v) => v.id === createdView.id,
+										(v) => v.id === createdView.id
 									)
 								) {
 									this.plugin.settings.viewConfiguration.push(
 										{
 											...createdView,
 											filterRules: createdRules,
-										},
+										}
 									);
 									this.plugin.saveSettings();
 									// Re-render the sidebar to show the new view
@@ -751,20 +750,20 @@ export class FluentSidebar extends Component {
 										{
 											reason: "create",
 											viewId: createdView.id,
-										},
+										}
 									);
 									new Notice(
 										t("View copied successfully: ") +
-											createdView.name,
+											createdView.name
 									);
 								} else {
 									new Notice(
-										t("Error: View ID already exists."),
+										t("Error: View ID already exists.")
 									);
 								}
 							},
 							view, // Pass current view as copy source
-							view.id,
+							view.id
 						).open();
 					});
 			});
@@ -775,7 +774,7 @@ export class FluentSidebar extends Component {
 					.onClick(() => {
 						const view =
 							this.plugin.settings.viewConfiguration.find(
-								(v) => v.id === viewId,
+								(v) => v.id === viewId
 							);
 						if (!view) {
 							return;
@@ -791,7 +790,7 @@ export class FluentSidebar extends Component {
 						// Trigger view config changed event
 						this.plugin.app.workspace.trigger(
 							"task-genius:view-config-changed",
-							{ reason: "visibility", viewId: viewId },
+							{ reason: "visibility", viewId: viewId }
 						);
 					});
 			});
@@ -799,7 +798,7 @@ export class FluentSidebar extends Component {
 
 		// Delete (for custom views only)
 		const view = this.plugin.settings.viewConfiguration.find(
-			(v) => v.id === viewId,
+			(v) => v.id === viewId
 		);
 		if (view?.type === "custom") {
 			menu.addSeparator();
@@ -810,7 +809,7 @@ export class FluentSidebar extends Component {
 					.onClick(() => {
 						this.plugin.settings.viewConfiguration =
 							this.plugin.settings.viewConfiguration.filter(
-								(v) => v.id !== viewId,
+								(v) => v.id !== viewId
 							);
 						this.plugin.saveSettings();
 						// Re-render based on current mode
@@ -822,7 +821,7 @@ export class FluentSidebar extends Component {
 						// Trigger view config changed event
 						this.plugin.app.workspace.trigger(
 							"task-genius:view-config-changed",
-							{ reason: "delete", viewId: viewId },
+							{ reason: "delete", viewId: viewId }
 						);
 						new Notice(t("View deleted: ") + view.name);
 					});
@@ -834,10 +833,10 @@ export class FluentSidebar extends Component {
 
 	private renderNavigationItems(
 		containerEl: HTMLElement,
-		items: FluentTaskNavigationItem[],
+		items: FluentTaskNavigationItem[]
 	) {
 		const visibleItems = items.filter((item) =>
-			this.isViewVisible(item.id),
+			this.isViewVisible(item.id)
 		);
 		if (!visibleItems.length) return;
 
@@ -874,14 +873,14 @@ export class FluentSidebar extends Component {
 		// Clear active state from both full navigation items and rail buttons
 		this.containerEl
 			.querySelectorAll(
-				".fluent-navigation-item, .fluent-rail-btn[data-view-id]",
+				".fluent-navigation-item, .fluent-rail-btn[data-view-id]"
 			)
 			.forEach((el) => {
 				el.removeClass("is-active");
 			});
 		// Apply to any element that carries this view id (works in both modes)
 		const activeEls = this.containerEl.querySelectorAll(
-			`[data-view-id="${viewId}"]`,
+			`[data-view-id="${viewId}"]`
 		);
 		activeEls.forEach((el) => el.addClass("is-active"));
 	}
