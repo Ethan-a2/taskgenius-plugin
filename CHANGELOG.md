@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.9.7](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.6...9.9.7) (2025-11-09)
+
+### Styles
+
+* **ui:** refine colors and improve visual consistency ([021dc1d](https://github.com/Quorafind/Obsidian-Task-Genius/commit/021dc1d))
+* **ui:** refactor CSS imports and modernize task item styling ([54e55f4](https://github.com/Quorafind/Obsidian-Task-Genius/commit/54e55f4))
+
 ## [9.9.6](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.5...9.9.6) (2025-11-06)
 
 ### Features
