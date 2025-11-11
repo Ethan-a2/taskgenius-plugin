@@ -103,6 +103,7 @@ export function createTaskCheckbox(
 
 export class TaskDetailsComponent extends Component {
 	public containerEl: HTMLElement;
+	private contentContainerEl: HTMLElement;
 	private contentEl: HTMLElement;
 	public currentTask: Task | null = null;
 	private isVisible = true;
@@ -127,6 +128,9 @@ export class TaskDetailsComponent extends Component {
 	onload() {
 		// Create details container
 		this.containerEl = this.parentEl.createDiv({
+			cls: "task-details-container",
+		});
+		this.contentContainerEl = this.containerEl.createDiv({
 			cls: "task-details",
 		});
 
@@ -135,9 +139,11 @@ export class TaskDetailsComponent extends Component {
 	}
 
 	private showEmptyState() {
-		this.containerEl.empty();
+		this.contentContainerEl.empty();
 
-		const emptyEl = this.containerEl.createDiv({ cls: "details-empty" });
+		const emptyEl = this.contentContainerEl.createDiv({
+			cls: "details-empty",
+		});
 		emptyEl.setText(t("Select a task to view details"));
 	}
 
@@ -157,16 +163,18 @@ export class TaskDetailsComponent extends Component {
 		this.isEditing = false;
 
 		// Clear existing content
-		this.containerEl.empty();
+		this.contentContainerEl.empty();
 
 		// Create details header
-		const headerEl = this.containerEl.createDiv({ cls: "details-header" });
+		const headerEl = this.contentContainerEl.createDiv({
+			cls: "details-header",
+		});
 		headerEl.setText(t("Task Details"));
 
 		// Only show close button on mobile or if explicitly requested
 		if (
 			Platform.isPhone ||
-			this.containerEl.closest(".tg-fluent-container")
+			this.contentContainerEl.closest(".tg-fluent-container")
 		) {
 			headerEl.createEl(
 				"div",
@@ -183,7 +191,9 @@ export class TaskDetailsComponent extends Component {
 		}
 
 		// Create content container
-		this.contentEl = this.containerEl.createDiv({ cls: "details-content" });
+		this.contentEl = this.contentContainerEl.createDiv({
+			cls: "details-content",
+		});
 
 		// Task name
 		const nameEl = this.contentEl.createEl("h2", { cls: "details-name" });

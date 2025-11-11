@@ -1,9 +1,9 @@
-.task-details .panel-toggle-container {
+.task-details-container .panel-toggle-container {
 	left: 10px;
 }
 
 /* Detail Panel Styles */
-.task-details {
+.task-details-container {
 	width: 300px;
 	flex-shrink: 0;
 	border-left: 1px solid var(--background-modifier-border);
@@ -20,22 +20,22 @@
 }
 
 /* Details panel visibility */
-.task-genius-container.details-hidden .task-details {
+.task-genius-container.details-hidden .task-details-container {
 	width: 0;
 	opacity: 0;
 	margin-right: -300px;
 	overflow: hidden;
 }
 
-.task-genius-container.details-visible .task-details {
+.task-genius-container.details-visible .task-details-container {
 	width: 350px;
 	opacity: 1;
 	margin-right: 0;
 }
 
 /* Mobile view - slide from right */
-.is-phone .task-details,
-.is-mobile .task-details {
+.is-phone .task-details-container,
+.is-mobile .task-details-container {
 	position: absolute;
 	right: 0;
 	top: 0;
@@ -46,17 +46,17 @@
 	transform: translateX(100%);
 }
 
-.is-phone .task-genius-container.details-hidden .task-details,
-.is-mobile .task-genius-container.details-hidden .task-details,
-.is-mobile .tg-fluent-container.details-hidden .task-details {
+.is-phone .task-genius-container.details-hidden .task-details-container,
+.is-mobile .task-genius-container.details-hidden .task-details-container,
+.is-mobile .tg-fluent-container.details-hidden .task-details-container {
 	width: 100%;
 	margin-right: 0;
 	transform: translateX(100%);
 }
 
-.is-phone .task-genius-container.details-visible .task-details,
-.is-mobile .task-genius-container.details-visible .task-details,
-.is-mobile .tg-fluent-container.details-visible .task-details {
+.is-phone .task-genius-container.details-visible .task-details-container,
+.is-mobile .task-genius-container.details-visible .task-details-container,
+.is-mobile .tg-fluent-container.details-visible .task-details-container {
 	width: calc(100% - var(--size-4-12));
 	transform: translateX(0);
 }
@@ -436,7 +436,7 @@
 }
 
 /* fluent Container specific styles for mobile */
-.is-mobile .tg-fluent-container .task-details {
+.is-mobile .tg-fluent-container .task-details-container {
 	position: fixed;
 	right: 0;
 	top: 0;
@@ -449,7 +449,7 @@
 	box-shadow: -4px 0 20px rgba(0, 0, 0, 0.2);
 }
 
-.is-mobile .task-details .details-close-btn:hover {
+.is-mobile .task-details-container .details-close-btn:hover {
 	background-color: var(--background-modifier-active-hover);
 }
 
@@ -476,7 +476,7 @@
 		flex: 1;
 	}
 
-	.task-details {
+	.task-details-container {
 		width: 100%;
 		max-width: 100%;
 		border-left: none;
