@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.9.8](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.7...9.9.8) (2025-11-11)
+
+### Features
+
+* **fluent:** add modern/classic interface style option ([f74966e](https://github.com/Quorafind/Obsidian-Task-Genius/commit/f74966e))
+
+### Bug Fixes
+
+* **quick-capture:** prevent double-adding # to tags ([0da1f19](https://github.com/Quorafind/Obsidian-Task-Genius/commit/0da1f19))
+
+### Refactors
+
+* **mcp:** optimize server initialization and fix UTF-8 encoding ([79aae98](https://github.com/Quorafind/Obsidian-Task-Genius/commit/79aae98))
+* **details:** restructure task details DOM hierarchy ([32bb832](https://github.com/Quorafind/Obsidian-Task-Genius/commit/32bb832))
+* **fluent:** extract overdue task checking logic ([6745487](https://github.com/Quorafind/Obsidian-Task-Genius/commit/6745487))
+
+### Styles
+
+* **fluent:** implement modern interface styles ([447f637](https://github.com/Quorafind/Obsidian-Task-Genius/commit/447f637))
+* **fluent:** format code and fix linting issues ([bd2a438](https://github.com/Quorafind/Obsidian-Task-Genius/commit/bd2a438))
+
 ## [9.9.7](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.6...9.9.7) (2025-11-09)
 
 ### Styles
