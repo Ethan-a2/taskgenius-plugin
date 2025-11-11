@@ -9,11 +9,12 @@ import { McpServerManager } from "@/mcp/McpServerManager";
 import { AuthMiddleware } from "@/mcp/auth/AuthMiddleware";
 import { ConfirmModal } from "@/components/ui/modals/ConfirmModal";
 import "@/styles/mcp-integration.css";
+import { TaskProgressBarSettingTab } from "@/setting";
 
 function createConfigBlock(
 	container: HTMLElement,
 	config: any,
-	label: string,
+	label: string
 ): void {
 	const blockContainer = container.createDiv("mcp-config-block");
 
@@ -47,9 +48,10 @@ function createConfigBlock(
 }
 
 export function renderMcpIntegrationSettingsTab(
+	settingTab: TaskProgressBarSettingTab,
 	containerEl: HTMLElement,
 	plugin: TaskProgressBarPlugin,
-	applySettingsUpdate: () => void,
+	applySettingsUpdate: () => void
 ): void {
 	// Only show on desktop
 	if (!Platform.isDesktopApp) {
@@ -83,7 +85,7 @@ export function renderMcpIntegrationSettingsTab(
 						const modal = new ConfirmModal(plugin, {
 							title: t("Enable MCP Server"),
 							message: t(
-								"WARNING: Enabling the MCP server will allow external AI tools and applications to access and modify your task data. This includes:\n\n• Reading all tasks and their details\n• Creating new tasks\n• Updating existing tasks\n• Deleting tasks\n• Accessing task metadata and properties\n\nOnly enable this if you trust the applications that will connect to the MCP server. Make sure to keep your authentication token secure.\n\nDo you want to continue?",
+								"WARNING: Enabling the MCP server will allow external AI tools and applications to access and modify your task data. This includes:\n\n• Reading all tasks and their details\n• Creating new tasks\n• Updating existing tasks\n• Deleting tasks\n• Accessing task metadata and properties\n\nOnly enable this if you trust the applications that will connect to the MCP server. Make sure to keep your authentication token secure.\n\nDo you want to continue?"
 							),
 							confirmText: t("Enable MCP Server"),
 							cancelText: t("Cancel"),
@@ -101,7 +103,8 @@ export function renderMcpIntegrationSettingsTab(
 											logLevel: "info",
 										};
 									} else {
-										plugin.settings.mcpIntegration.enabled = true;
+										plugin.settings.mcpIntegration.enabled =
+											true;
 									}
 
 									await plugin.saveSettings();
@@ -112,19 +115,26 @@ export function renderMcpIntegrationSettingsTab(
 										});
 										updateServerStatus(
 											statusContainer,
-											mcpManager,
+											mcpManager
 										);
 									}
 
 									toggle.setValue(true);
 									new Notice(
 										t(
-											"MCP Server enabled. Keep your authentication token secure!",
-										),
+											"MCP Server enabled. Keep your authentication token secure!"
+										)
 									);
+
+									setTimeout(() => {
+										settingTab.display();
+										settingTab.openTab("mcp-integration");
+									}, 800);
 								} else {
 									// User cancelled, revert toggle
 									toggle.setValue(false);
+									settingTab.display();
+									settingTab.openTab("mcp-integration");
 								}
 							},
 						});
@@ -156,15 +166,15 @@ export function renderMcpIntegrationSettingsTab(
 		.setName(t("Host"))
 		.setDesc(
 			t(
-				"Server host address. Use 127.0.0.1 for local only, 0.0.0.0 for all interfaces",
-			),
+				"Server host address. Use 127.0.0.1 for local only, 0.0.0.0 for all interfaces"
+			)
 		)
 		.addDropdown((dropdown) => {
 			dropdown
 				.addOption("127.0.0.1", "127.0.0.1 (Local only)")
 				.addOption(
 					"0.0.0.0",
-					"0.0.0.0 (All interfaces - for external access)",
+					"0.0.0.0 (All interfaces - for external access)"
 				)
 				.setValue(plugin.settings.mcpIntegration?.host || "127.0.0.1")
 				.onChange(async (value) => {
@@ -178,7 +188,7 @@ export function renderMcpIntegrationSettingsTab(
 						const modal = new ConfirmModal(plugin, {
 							title: t("Security Warning"),
 							message: t(
-								"⚠️ **WARNING**: Switching to 0.0.0.0 will make the MCP server accessible from external networks.\n\nThis could expose your Obsidian data to:\n- Other devices on your local network\n- Potentially the internet if your firewall is misconfigured\n\n**Only proceed if you:**\n- Understand the security implications\n- Have properly configured your firewall\n- Need external access for legitimate reasons\n\nAre you sure you want to continue?",
+								"⚠️ **WARNING**: Switching to 0.0.0.0 will make the MCP server accessible from external networks.\n\nThis could expose your Obsidian data to:\n- Other devices on your local network\n- Potentially the internet if your firewall is misconfigured\n\n**Only proceed if you:**\n- Understand the security implications\n- Have properly configured your firewall\n- Need external access for legitimate reasons\n\nAre you sure you want to continue?"
 							),
 							confirmText: t("Yes, I understand the risks"),
 							cancelText: t("Cancel"),
@@ -191,14 +201,14 @@ export function renderMcpIntegrationSettingsTab(
 									}
 									new Notice(
 										t(
-											"Host changed to 0.0.0.0. Server is now accessible from external networks.",
-										),
+											"Host changed to 0.0.0.0. Server is now accessible from external networks."
+										)
 									);
 								} else {
 									// Revert dropdown to previous value
 									dropdown.setValue(
 										plugin.settings.mcpIntegration?.host ||
-											"127.0.0.1",
+											"127.0.0.1"
 									);
 								}
 							},
@@ -236,9 +246,7 @@ export function renderMcpIntegrationSettingsTab(
 	const authTokenSetting = new Setting(containerEl)
 		.setName(t("Authentication Token"))
 		.setDesc(
-			t(
-				"Bearer token for authenticating MCP requests (keep this secret)",
-			),
+			t("Bearer token for authenticating MCP requests (keep this secret)")
 		);
 
 	const tokenInput = authTokenSetting.controlEl.createEl("input", {
@@ -340,7 +348,11 @@ export function renderMcpIntegrationSettingsTab(
 					// Test 1: Basic connectivity
 					console.log("[MCP Test] Test 1: Basic connectivity...");
 					const healthRes = await requestUrl({
-						url: `http://${plugin.settings.mcpIntegration?.host || "127.0.0.1"}:${plugin.settings.mcpIntegration?.port || 7777}/health`,
+						url: `http://${
+							plugin.settings.mcpIntegration?.host || "127.0.0.1"
+						}:${
+							plugin.settings.mcpIntegration?.port || 7777
+						}/health`,
 						method: "GET",
 					}).catch((err) => {
 						console.error("[MCP Test] Health check failed:", err);
@@ -354,7 +366,7 @@ export function renderMcpIntegrationSettingsTab(
 
 					// Test 2: MCP initialize with Method B (combined bearer)
 					console.log(
-						"[MCP Test] Test 2: MCP initialize with Method B...",
+						"[MCP Test] Test 2: MCP initialize with Method B..."
 					);
 					const initRes = await requestUrl({
 						url: serverUrl,
@@ -377,7 +389,7 @@ export function renderMcpIntegrationSettingsTab(
 					if (initRes.status !== 200) {
 						const errorBody = initRes.text;
 						throw new Error(
-							`Initialize failed with status ${initRes.status}: ${errorBody}`,
+							`Initialize failed with status ${initRes.status}: ${errorBody}`
 						);
 					}
 
@@ -429,12 +441,12 @@ export function renderMcpIntegrationSettingsTab(
 
 					if (toolsJson.error) {
 						throw new Error(
-							`Tools list error: ${toolsJson.error.message}`,
+							`Tools list error: ${toolsJson.error.message}`
 						);
 					}
 
 					new Notice(
-						t("Connection test successful! MCP server is working."),
+						t("Connection test successful! MCP server is working.")
 					);
 					console.log("[MCP Test] All tests passed!");
 				} catch (error: any) {
@@ -464,7 +476,7 @@ export function renderMcpIntegrationSettingsTab(
 						updateServerStatus(statusContainer, mcpManager);
 					} catch (error: any) {
 						new Notice(
-							t("Failed to restart server: ") + error.message,
+							t("Failed to restart server: ") + error.message
 						);
 					} finally {
 						button.setDisabled(false);
@@ -497,7 +509,7 @@ export function renderMcpIntegrationSettingsTab(
 						}
 						if (found) {
 							new Notice(
-								t("Port updated to ") + String(candidate),
+								t("Port updated to ") + String(candidate)
 							);
 							updateServerStatus(statusContainer, mcpManager);
 						} else {
@@ -524,13 +536,13 @@ export function renderMcpIntegrationSettingsTab(
 	const authMethodSetting = new Setting(configContainer)
 		.setName(t("Authentication Method"))
 		.setDesc(
-			t("Choose the authentication method for client configurations"),
+			t("Choose the authentication method for client configurations")
 		)
 		.addDropdown((dropdown) => {
 			dropdown
 				.addOption(
 					"methodB",
-					t("Method B: Combined Bearer (Recommended)"),
+					t("Method B: Combined Bearer (Recommended)")
 				)
 				.addOption("methodA", t("Method A: Custom Headers"))
 				.setValue("methodB")
@@ -545,7 +557,9 @@ export function renderMcpIntegrationSettingsTab(
 	// For external access, use actual IP or localhost depending on host setting
 	const configHost = plugin.settings.mcpIntegration?.host || "127.0.0.1";
 	const displayHost = configHost === "0.0.0.0" ? "127.0.0.1" : configHost; // Use localhost for display when binding to all interfaces
-	const serverUrl = `http://${displayHost}:${plugin.settings.mcpIntegration?.port || 7777}/mcp`;
+	const serverUrl = `http://${displayHost}:${
+		plugin.settings.mcpIntegration?.port || 7777
+	}/mcp`;
 
 	const authToken = plugin.settings.mcpIntegration?.authToken || "";
 	const vaultName = plugin.app.vault.getName();
@@ -588,7 +602,7 @@ export function renderMcpIntegrationSettingsTab(
 
 	// Container for client configs that will be updated dynamically
 	const clientConfigsContainer = configContainer.createDiv(
-		"mcp-client-configs-container",
+		"mcp-client-configs-container"
 	);
 
 	// Function to generate client configs based on selected method
@@ -833,7 +847,7 @@ export function renderMcpIntegrationSettingsTab(
 			if (client.name === "Cursor") {
 				// Add one-click install for Cursor
 				const cursorInstallSection = content.createDiv(
-					"mcp-cursor-install-section",
+					"mcp-cursor-install-section"
 				);
 				cursorInstallSection.createEl("h4", {
 					text: t("Quick Install"),
@@ -850,17 +864,19 @@ export function renderMcpIntegrationSettingsTab(
 
 				// Base64 encode the configuration
 				const encodedConfig = btoa(JSON.stringify(cursorConfig));
-				const cursorDeeplink = `cursor://anysphere.cursor-deeplink/mcp/install?name=${encodeURIComponent(toolName)}&config=${encodedConfig}`;
+				const cursorDeeplink = `cursor://anysphere.cursor-deeplink/mcp/install?name=${encodeURIComponent(
+					toolName
+				)}&config=${encodedConfig}`;
 
 				// Create install button container
 				const installContainer = cursorInstallSection.createDiv(
-					"mcp-cursor-install-container",
+					"mcp-cursor-install-container"
 				);
 
 				// Add description
 				installContainer.createEl("p", {
 					text: t(
-						"Click the button below to automatically add this MCP server to Cursor:",
+						"Click the button below to automatically add this MCP server to Cursor:"
 					),
 					cls: "mcp-cursor-install-desc",
 				});
@@ -881,7 +897,7 @@ export function renderMcpIntegrationSettingsTab(
 
 				// Additional buttons container
 				const additionalButtons = installContainer.createDiv(
-					"mcp-cursor-additional-buttons",
+					"mcp-cursor-additional-buttons"
 				);
 
 				// Copy deeplink button
@@ -915,13 +931,13 @@ export function renderMcpIntegrationSettingsTab(
 				createConfigBlock(
 					content,
 					client.config,
-					`${client.name} configuration`,
+					`${client.name} configuration`
 				);
 			} else if (client.config) {
 				createConfigBlock(
 					content,
 					client.config,
-					`${client.name} configuration`,
+					`${client.name} configuration`
 				);
 			} else if (client.commandLine) {
 				// Special handling for command line configs
@@ -1079,7 +1095,7 @@ export function renderMcpIntegrationSettingsTab(
 		} catch (e: any) {
 			console.error("[MCP Tools] Failed to load tools:", e);
 			toolsInfo.setText(
-				t("Failed to load tools. Is the MCP server running?") as string,
+				t("Failed to load tools. Is the MCP server running?") as string
 			);
 		}
 	}
@@ -1120,12 +1136,12 @@ export function renderMcpIntegrationSettingsTab(
 
 		// Example code blocks
 		const exampleCodeContainer = exampleContainer.createDiv(
-			"mcp-example-code-container",
+			"mcp-example-code-container"
 		);
 
 		// cURL example
 		const curlExample = exampleCodeContainer.createDiv(
-			"mcp-example-block active",
+			"mcp-example-block active"
 		);
 		curlExample.createEl("div", {
 			text: "1) Initialize",
@@ -1368,7 +1384,7 @@ print(call_res.json())`,
 
 function updateServerStatus(
 	container: HTMLElement,
-	mcpManager?: McpServerManager,
+	mcpManager?: McpServerManager
 ): void {
 	container.empty();
 

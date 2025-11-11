@@ -8,6 +8,7 @@
 import { TFile, TFolder, Vault, MetadataCache, CachedMetadata } from "obsidian";
 import { TgProject } from "../types/task";
 import { ProjectDetectionMethod } from "../common/setting-definition";
+import { parseLocalDate } from "@/utils/date/date-formatter";
 
 export interface ProjectConfigData {
 	project?: string;
@@ -822,9 +823,6 @@ export class ProjectConfigManager {
 			// Try to convert date string to timestamp for better performance
 			if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
 				// Use the same date parsing logic as MarkdownTaskParser
-				const {
-					parseLocalDate,
-				} = require("../utils/date/date-formatter");
 				const timestamp = parseLocalDate(value);
 				return timestamp !== undefined ? timestamp : value;
 			}

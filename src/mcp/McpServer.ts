@@ -8,6 +8,8 @@ import { AuthMiddleware } from "./auth/AuthMiddleware";
 import { DataflowBridge } from "./bridge/DataflowBridge";
 import { McpServerConfig } from "./types/mcp";
 import TaskProgressBarPlugin from "../index";
+import { QueryAPI } from "@/dataflow/api/QueryAPI";
+import { WriteAPI } from "@/dataflow/api/WriteAPI";
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const http = require("http");
@@ -17,34 +19,30 @@ const url = require("url");
 export class McpServer {
 	private httpServer: any;
 	private authMiddleware: AuthMiddleware;
-	private taskBridge: DataflowBridge;
+	private taskBridge?: DataflowBridge;
+	private bridgeReady: Promise<void>;
 	private isRunning: boolean = false;
 	private requestCount: number = 0;
 	private startTime?: Date;
 	private actualPort?: number;
-	private sessions: Map<string, { created: Date; lastAccess: Date }> = new Map();
+	private sessions: Map<string, { created: Date; lastAccess: Date }> =
+		new Map();
 
 	constructor(
 		private plugin: TaskProgressBarPlugin,
 		private config: McpServerConfig
 	) {
 		this.authMiddleware = new AuthMiddleware(config.authToken);
-		// Always use DataflowBridge now
-		const QueryAPI = require("../dataflow/api/QueryAPI").QueryAPI;
-		const WriteAPI = require("../dataflow/api/WriteAPI").WriteAPI;
-		const queryAPI = new QueryAPI(plugin.app, plugin.app.vault, plugin.app.metadataCache);
-		// Create WriteAPI with getTaskById function from repository
-		const getTaskById = (id: string) => queryAPI.getRepository().getTaskById(id);
-		const writeAPI = new WriteAPI(plugin.app, plugin.app.vault, plugin.app.metadataCache, plugin, getTaskById);
-		this.taskBridge = new DataflowBridge(plugin, queryAPI, writeAPI);
-		console.log("MCP Server: Using DataflowBridge");
+		this.bridgeReady = this.initializeTaskBridge();
 	}
 
 	/**
 	 * Generate a simple session ID
 	 */
 	private generateSessionId(): string {
-		return `session-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`;
+		return `session-${Date.now()}-${Math.random()
+			.toString(36)
+			.substring(2, 15)}`;
 	}
 
 	/**
@@ -88,7 +86,8 @@ export class McpServer {
 				arguments: [
 					{
 						name: "weekOffset",
-						description: "Week offset from current week (0 for this week, 1 for next week)",
+						description:
+							"Week offset from current week (0 for this week, 1 for next week)",
 						required: false,
 					},
 				],
@@ -96,7 +95,8 @@ export class McpServer {
 			{
 				name: "project_overview",
 				title: "Project Overview",
-				description: "Get an overview of all projects and their task counts",
+				description:
+					"Get an overview of all projects and their task counts",
 				arguments: [],
 			},
 			{
@@ -137,6 +137,77 @@ export class McpServer {
 	}
 
 	/**
+	 * Initialize the Dataflow bridge, reusing plugin instances when available
+	 */
+	private async initializeTaskBridge(): Promise<void> {
+		try {
+			let queryAPI =
+				this.plugin.dataflowOrchestrator?.getQueryAPI() ??
+				new QueryAPI(
+					this.plugin.app,
+					this.plugin.app.vault,
+					this.plugin.app.metadataCache
+				);
+
+			// Only run heavy initialization if we're using a standalone QueryAPI
+			if (!this.plugin.dataflowOrchestrator) {
+				await queryAPI.initialize();
+				if (typeof queryAPI.ensureCache === "function") {
+					await queryAPI.ensureCache();
+				}
+			}
+
+			let writeAPI =
+				this.plugin.writeAPI ??
+				new WriteAPI(
+					this.plugin.app,
+					this.plugin.app.vault,
+					this.plugin.app.metadataCache,
+					this.plugin,
+					async (id: string) => {
+						const task = await queryAPI
+							.getRepository()
+							.getTaskById(id);
+						return task ?? null;
+					}
+				);
+
+			this.taskBridge = new DataflowBridge(
+				this.plugin,
+				queryAPI,
+				writeAPI
+			);
+			console.log("MCP Server: Using DataflowBridge");
+		} catch (error) {
+			console.error(
+				"MCP Server: Failed to initialize DataflowBridge",
+				error
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * Ensure the bridge is ready before serving requests
+	 */
+	private async ensureBridgeReady(): Promise<void> {
+		if (this.taskBridge) {
+			return;
+		}
+
+		await this.bridgeReady;
+
+		if (!this.taskBridge) {
+			throw new Error("Dataflow bridge failed to initialize");
+		}
+	}
+
+	private async requireTaskBridge(): Promise<DataflowBridge> {
+		await this.ensureBridgeReady();
+		return this.taskBridge!;
+	}
+
+	/**
 	 * Get resource definitions
 	 */
 	private getResources(): any[] {
@@ -153,13 +224,21 @@ export class McpServer {
 			{
 				name: "update_task_status",
 				title: "Update Task Status",
-				description: "Update a single task's completion or status field.",
+				description:
+					"Update a single task's completion or status field.",
 				inputSchema: {
 					type: "object",
 					properties: {
 						taskId: { type: "string" },
-						status: { type: "string", description: "Optional status mark to set instead of completed" },
-						completed: { type: "boolean", description: "Set completed true/false" },
+						status: {
+							type: "string",
+							description:
+								"Optional status mark to set instead of completed",
+						},
+						completed: {
+							type: "boolean",
+							description: "Set completed true/false",
+						},
 					},
 					required: ["taskId"],
 				},
@@ -167,7 +246,8 @@ export class McpServer {
 			{
 				name: "batch_update_task_status",
 				title: "Batch Update Task Status",
-				description: "Batch update completion/status for multiple tasks.",
+				description:
+					"Batch update completion/status for multiple tasks.",
 				inputSchema: {
 					type: "object",
 					properties: {
@@ -181,7 +261,8 @@ export class McpServer {
 			{
 				name: "postpone_tasks",
 				title: "Postpone Tasks",
-				description: "Batch postpone tasks to a new due date (YYYY-MM-DD)",
+				description:
+					"Batch postpone tasks to a new due date (YYYY-MM-DD)",
 				inputSchema: {
 					type: "object",
 					properties: {
@@ -200,13 +281,24 @@ export class McpServer {
 			{
 				name: "list_tasks_for_period",
 				title: "List Tasks For Period",
-				description: "List tasks for a day/month/year based on dateType (default: due).",
+				description:
+					"List tasks for a day/month/year based on dateType (default: due).",
 				inputSchema: {
 					type: "object",
 					properties: {
-						period: { type: "string", enum: ["day", "month", "year"] },
-						date: { type: "string", description: "Base date YYYY-MM-DD" },
-						dateType: { type: "string", enum: ["due", "start", "scheduled", "completed"], description: "Which date field to use" },
+						period: {
+							type: "string",
+							enum: ["day", "month", "year"],
+						},
+						date: {
+							type: "string",
+							description: "Base date YYYY-MM-DD",
+						},
+						dateType: {
+							type: "string",
+							enum: ["due", "start", "scheduled", "completed"],
+							description: "Which date field to use",
+						},
 						limit: { type: "number" },
 					},
 					required: ["period", "date"],
@@ -215,13 +307,17 @@ export class McpServer {
 			{
 				name: "list_tasks_in_range",
 				title: "List Tasks In Range",
-				description: "List tasks between from/to dates (default dateType: due).",
+				description:
+					"List tasks between from/to dates (default dateType: due).",
 				inputSchema: {
 					type: "object",
 					properties: {
 						from: { type: "string" },
 						to: { type: "string" },
-						dateType: { type: "string", enum: ["due", "start", "scheduled", "completed"] },
+						dateType: {
+							type: "string",
+							enum: ["due", "start", "scheduled", "completed"],
+						},
 						limit: { type: "number" },
 					},
 					required: ["from", "to"],
@@ -230,12 +326,19 @@ export class McpServer {
 			{
 				name: "add_project_quick_capture",
 				title: "Add Project Task to Quick Capture",
-				description: "Add a project-tagged task to the Quick Capture target (fixed or daily note).",
+				description:
+					"Add a project-tagged task to the Quick Capture target (fixed or daily note).",
 				inputSchema: {
 					type: "object",
 					properties: {
-						content: { type: "string", description: "Task content text" },
-						project: { type: "string", description: "Project name to tag as +project" },
+						content: {
+							type: "string",
+							description: "Task content text",
+						},
+						project: {
+							type: "string",
+							description: "Project name to tag as +project",
+						},
 						tags: { type: "array", items: { type: "string" } },
 						priority: { type: "number", minimum: 1, maximum: 5 },
 						dueDate: { type: "string" },
@@ -249,21 +352,46 @@ export class McpServer {
 			{
 				name: "create_task_in_daily_note",
 				title: "Create Task in Daily Note",
-				description: "Create a task in today's daily note. Creates the note if missing. Supports creating already-completed tasks for recording purposes.",
+				description:
+					"Create a task in today's daily note. Creates the note if missing. Supports creating already-completed tasks for recording purposes.",
 				inputSchema: {
 					type: "object",
 					properties: {
-						content: { type: "string", description: "Task content text" },
-						dueDate: { type: "string", description: "Due date YYYY-MM-DD" },
-						startDate: { type: "string", description: "Start date YYYY-MM-DD" },
+						content: {
+							type: "string",
+							description: "Task content text",
+						},
+						dueDate: {
+							type: "string",
+							description: "Due date YYYY-MM-DD",
+						},
+						startDate: {
+							type: "string",
+							description: "Start date YYYY-MM-DD",
+						},
 						priority: { type: "number", minimum: 1, maximum: 5 },
 						tags: { type: "array", items: { type: "string" } },
 						project: { type: "string" },
 						context: { type: "string" },
-						heading: { type: "string", description: "Optional heading to place task under" },
-						parent: { type: "string", description: "Optional parent task ID to create subtask under" },
-						completed: { type: "boolean", description: "Whether the task is already completed (for recording purposes)" },
-						completedDate: { type: "string", description: "Completion date YYYY-MM-DD (only used when completed is true)" },
+						heading: {
+							type: "string",
+							description: "Optional heading to place task under",
+						},
+						parent: {
+							type: "string",
+							description:
+								"Optional parent task ID to create subtask under",
+						},
+						completed: {
+							type: "boolean",
+							description:
+								"Whether the task is already completed (for recording purposes)",
+						},
+						completedDate: {
+							type: "string",
+							description:
+								"Completion date YYYY-MM-DD (only used when completed is true)",
+						},
 					},
 					required: ["content"],
 				},
@@ -281,8 +409,15 @@ export class McpServer {
 								completed: { type: "boolean" },
 								project: { type: "string" },
 								context: { type: "string" },
-								priority: { type: "number", minimum: 1, maximum: 5 },
-								tags: { type: "array", items: { type: "string" } },
+								priority: {
+									type: "number",
+									minimum: 1,
+									maximum: 5,
+								},
+								tags: {
+									type: "array",
+									items: { type: "string" },
+								},
 							},
 						},
 						limit: { type: "number" },
@@ -291,7 +426,10 @@ export class McpServer {
 							type: "object",
 							properties: {
 								field: { type: "string" },
-								order: { type: "string", enum: ["asc", "desc"] },
+								order: {
+									type: "string",
+									enum: ["asc", "desc"],
+								},
 							},
 						},
 					},
@@ -325,21 +463,63 @@ export class McpServer {
 			{
 				name: "create_task",
 				title: "Create Task",
-				description: "Create a new task with specified properties. If the target file does not exist, it will be created automatically. Supports creating already-completed tasks for recording purposes.",
+				description:
+					"Create a new task with specified properties. If the target file does not exist, it will be created automatically. Supports creating already-completed tasks for recording purposes.",
 				inputSchema: {
 					type: "object",
 					properties: {
-						content: { type: "string", description: "Task content text" },
-						filePath: { type: "string", description: "Target markdown file path (e.g., Daily/2025-08-15.md). If omitted, uses active file." },
-						project: { type: "string", description: "Project name to append as +project" },
-						context: { type: "string", description: "Context name to append as @context" },
-						priority: { type: "number", minimum: 1, maximum: 5, description: "1-5 priority; adds ! markers" },
-						dueDate: { type: "string", description: "Due date YYYY-MM-DD (adds 📅 marker)" },
-						startDate: { type: "string", description: "Start date YYYY-MM-DD (adds 🛫 marker)" },
-						tags: { type: "array", items: { type: "string" }, description: "Array of tags (without #)" },
-						parent: { type: "string", description: "Parent task ID to create a subtask under" },
-						completed: { type: "boolean", description: "Whether the task is already completed (for recording purposes)" },
-						completedDate: { type: "string", description: "Completion date YYYY-MM-DD (only used when completed is true)" },
+						content: {
+							type: "string",
+							description: "Task content text",
+						},
+						filePath: {
+							type: "string",
+							description:
+								"Target markdown file path (e.g., Daily/2025-08-15.md). If omitted, uses active file.",
+						},
+						project: {
+							type: "string",
+							description: "Project name to append as +project",
+						},
+						context: {
+							type: "string",
+							description: "Context name to append as @context",
+						},
+						priority: {
+							type: "number",
+							minimum: 1,
+							maximum: 5,
+							description: "1-5 priority; adds ! markers",
+						},
+						dueDate: {
+							type: "string",
+							description: "Due date YYYY-MM-DD (adds 📅 marker)",
+						},
+						startDate: {
+							type: "string",
+							description:
+								"Start date YYYY-MM-DD (adds 🛫 marker)",
+						},
+						tags: {
+							type: "array",
+							items: { type: "string" },
+							description: "Array of tags (without #)",
+						},
+						parent: {
+							type: "string",
+							description:
+								"Parent task ID to create a subtask under",
+						},
+						completed: {
+							type: "boolean",
+							description:
+								"Whether the task is already completed (for recording purposes)",
+						},
+						completedDate: {
+							type: "string",
+							description:
+								"Completion date YYYY-MM-DD (only used when completed is true)",
+						},
 					},
 					required: ["content"],
 				},
@@ -435,7 +615,11 @@ export class McpServer {
 								type: "object",
 								properties: {
 									content: { type: "string" },
-									priority: { type: "number", minimum: 1, maximum: 5 },
+									priority: {
+										type: "number",
+										minimum: 1,
+										maximum: 5,
+									},
 									dueDate: { type: "string" },
 								},
 								required: ["content"],
@@ -448,7 +632,8 @@ export class McpServer {
 			{
 				name: "search_tasks",
 				title: "Search Tasks",
-				description: "Search tasks by text query across multiple fields",
+				description:
+					"Search tasks by text query across multiple fields",
 				inputSchema: {
 					type: "object",
 					properties: {
@@ -468,7 +653,8 @@ export class McpServer {
 			{
 				name: "batch_create_tasks",
 				title: "Batch Create Tasks",
-				description: "Create multiple tasks at once with optional default file path",
+				description:
+					"Create multiple tasks at once with optional default file path",
 				inputSchema: {
 					type: "object",
 					properties: {
@@ -477,23 +663,73 @@ export class McpServer {
 							items: {
 								type: "object",
 								properties: {
-									content: { type: "string", description: "Task content text" },
-									filePath: { type: "string", description: "Target markdown file path (overrides defaultFilePath)" },
-									project: { type: "string", description: "Project name to append as +project" },
-									context: { type: "string", description: "Context name to append as @context" },
-									priority: { type: "number", minimum: 1, maximum: 5, description: "1-5 priority; adds ! markers" },
-									dueDate: { type: "string", description: "Due date YYYY-MM-DD (adds 📅 marker)" },
-									startDate: { type: "string", description: "Start date YYYY-MM-DD (adds 🛫 marker)" },
-									tags: { type: "array", items: { type: "string" }, description: "Array of tags (without #)" },
-									parent: { type: "string", description: "Parent task ID to create a subtask under" },
-									completed: { type: "boolean", description: "Whether the task is already completed (for recording purposes)" },
-									completedDate: { type: "string", description: "Completion date YYYY-MM-DD (only used when completed is true)" },
+									content: {
+										type: "string",
+										description: "Task content text",
+									},
+									filePath: {
+										type: "string",
+										description:
+											"Target markdown file path (overrides defaultFilePath)",
+									},
+									project: {
+										type: "string",
+										description:
+											"Project name to append as +project",
+									},
+									context: {
+										type: "string",
+										description:
+											"Context name to append as @context",
+									},
+									priority: {
+										type: "number",
+										minimum: 1,
+										maximum: 5,
+										description:
+											"1-5 priority; adds ! markers",
+									},
+									dueDate: {
+										type: "string",
+										description:
+											"Due date YYYY-MM-DD (adds 📅 marker)",
+									},
+									startDate: {
+										type: "string",
+										description:
+											"Start date YYYY-MM-DD (adds 🛫 marker)",
+									},
+									tags: {
+										type: "array",
+										items: { type: "string" },
+										description:
+											"Array of tags (without #)",
+									},
+									parent: {
+										type: "string",
+										description:
+											"Parent task ID to create a subtask under",
+									},
+									completed: {
+										type: "boolean",
+										description:
+											"Whether the task is already completed (for recording purposes)",
+									},
+									completedDate: {
+										type: "string",
+										description:
+											"Completion date YYYY-MM-DD (only used when completed is true)",
+									},
 								},
 								required: ["content"],
 							},
 							description: "Array of tasks to create",
 						},
-						defaultFilePath: { type: "string", description: "Default file path for all tasks (can be overridden per task)" },
+						defaultFilePath: {
+							type: "string",
+							description:
+								"Default file path for all tasks (can be overridden per task)",
+						},
 					},
 					required: ["tasks"],
 				},
@@ -506,37 +742,45 @@ export class McpServer {
 	 */
 	private buildPromptMessages(promptName: string, args: any): any[] {
 		const messages = [];
-		
+
 		switch (promptName) {
 			case "daily_review":
 				messages.push({
 					role: "user",
 					content: {
 						type: "text",
-						text: `Please help me review my tasks for today. ${args?.includeCompleted ? 'Include completed tasks in the review.' : 'Focus on pending tasks only.'} Provide a summary of:
+						text: `Please help me review my tasks for today. ${
+							args?.includeCompleted
+								? "Include completed tasks in the review."
+								: "Focus on pending tasks only."
+						} Provide a summary of:
 1. What tasks are due today
 2. What tasks are overdue
 3. High priority items that need attention
-4. Suggested next actions`
-					}
+4. Suggested next actions`,
+					},
 				});
 				break;
-				
+
 			case "weekly_planning":
 				const weekOffset = args?.weekOffset || 0;
 				messages.push({
 					role: "user",
 					content: {
 						type: "text",
-						text: `Help me plan my tasks for ${weekOffset === 0 ? 'this week' : `week +${weekOffset}`}. Please:
+						text: `Help me plan my tasks for ${
+							weekOffset === 0
+								? "this week"
+								: `week +${weekOffset}`
+						}. Please:
 1. List all tasks scheduled for the week
 2. Identify any conflicts or overloaded days
 3. Suggest task prioritization
-4. Recommend which tasks could be rescheduled if needed`
-					}
+4. Recommend which tasks could be rescheduled if needed`,
+					},
 				});
 				break;
-				
+
 			case "project_overview":
 				messages.push({
 					role: "user",
@@ -547,35 +791,39 @@ export class McpServer {
 2. Task count per project (pending vs completed)
 3. Projects with upcoming deadlines
 4. Projects that may need more attention
-5. Overall project health assessment`
-					}
+5. Overall project health assessment`,
+					},
 				});
 				break;
-				
+
 			case "overdue_tasks":
 				const daysOverdue = args?.daysOverdue || 0;
 				messages.push({
 					role: "user",
 					content: {
 						type: "text",
-						text: `Show me all overdue tasks ${daysOverdue > 0 ? `that are at least ${daysOverdue} days overdue` : ''}. Please:
+						text: `Show me all overdue tasks ${
+							daysOverdue > 0
+								? `that are at least ${daysOverdue} days overdue`
+								: ""
+						}. Please:
 1. Group them by priority level
 2. Highlight the most critical overdue items
 3. Suggest which tasks to tackle first
-4. Identify any tasks that might need to be rescheduled or cancelled`
-					}
+4. Identify any tasks that might need to be rescheduled or cancelled`,
+					},
 				});
 				break;
-				
+
 			case "task_search":
 				const query = args?.query || "";
 				const project = args?.project;
 				const priority = args?.priority;
-				
+
 				let searchPrompt = `Search for tasks matching: "${query}"`;
 				if (project) searchPrompt += ` in project "${project}"`;
 				if (priority) searchPrompt += ` with priority ${priority}`;
-				
+
 				messages.push({
 					role: "user",
 					content: {
@@ -584,21 +832,21 @@ export class McpServer {
 1. List all matching tasks with their details
 2. Group them by relevance or category
 3. Highlight the most important matches
-4. Provide a summary of the search results`
-					}
+4. Provide a summary of the search results`,
+					},
 				});
 				break;
-				
+
 			default:
 				messages.push({
 					role: "user",
 					content: {
 						type: "text",
-						text: `Execute the ${promptName} prompt with the provided arguments.`
-					}
+						text: `Execute the ${promptName} prompt with the provided arguments.`,
+					},
 				});
 		}
-		
+
 		return messages;
 	}
 
@@ -606,50 +854,40 @@ export class McpServer {
 	 * Execute a tool
 	 */
 	private async executeTool(toolName: string, args: any): Promise<any> {
+		const taskBridge = await this.requireTaskBridge();
 		try {
-			// Ensure data source is available before executing tools
-			if (this.plugin.settings?.enableIndexer) {
-				const queryAPI = new (require("../dataflow/api/QueryAPI").QueryAPI)(this.plugin.app, this.plugin.app.vault, this.plugin.app.metadataCache);
-				// Rebind bridge if it's not initialized yet
-				if (!this.taskBridge) {
-					const WriteAPI = require("../dataflow/api/WriteAPI").WriteAPI;
-					const getTaskById = (id: string) => queryAPI.getRepository().getTaskById(id);
-					const writeAPI = new WriteAPI(this.plugin.app, this.plugin.app.vault, this.plugin.app.metadataCache, this.plugin, getTaskById);
-					this.taskBridge = new DataflowBridge(this.plugin, queryAPI, writeAPI);
-				}
-			}
 			let result: any;
 
 			switch (toolName) {
 				case "query_tasks":
-					result = await this.taskBridge.queryTasks(args);
+					result = await taskBridge.queryTasks(args);
 					break;
 				case "update_task":
-					result = { error: "Not implemented in DataflowBridge" };
+					result = await taskBridge.updateTask(args);
 					break;
 				case "delete_task":
-					result = { error: "Not implemented in DataflowBridge" };
+					result = await taskBridge.deleteTask(args);
 					break;
 				case "create_task":
-					result = { error: "Not implemented in DataflowBridge" };
+					result = await taskBridge.createTask(args);
 					break;
 				case "create_task_in_daily_note":
-					result = { error: "Not implemented in DataflowBridge" };
+					result = await taskBridge.createTaskInDailyNote(args);
 					break;
 				case "query_project_tasks":
-					result = await this.taskBridge.queryProjectTasks(args.project);
+					result = await taskBridge.queryProjectTasks(args.project);
 					break;
 				case "query_context_tasks":
-					result = await this.taskBridge.queryContextTasks(args.context);
+					result = await taskBridge.queryContextTasks(args.context);
 					break;
 				case "query_by_priority":
-					result = await this.taskBridge.queryByPriority(
+					result = await taskBridge.queryByPriority(
 						args.priority,
 						args.limit
 					);
 					break;
 				case "query_by_due_date":
-					result = await this.taskBridge.queryByDate({
+					result = await taskBridge.queryByDate({
 						dateType: "due",
 						from: args.from,
 						to: args.to,
@@ -657,7 +895,7 @@ export class McpServer {
 					});
 					break;
 				case "query_by_start_date":
-					result = await this.taskBridge.queryByDate({
+					result = await taskBridge.queryByDate({
 						dateType: "start",
 						from: args.from,
 						to: args.to,
@@ -665,37 +903,48 @@ export class McpServer {
 					});
 					break;
 				case "batch_update_text":
-					result = { error: "Not implemented in DataflowBridge" };
+					result = await taskBridge.batchUpdateText(args);
 					break;
 				case "batch_create_subtasks":
-					result = { error: "Not implemented in DataflowBridge" };
+					result = await taskBridge.batchCreateSubtasks(args);
 					break;
 				case "search_tasks":
-					result = await this.taskBridge.searchTasks(args);
+					result = await taskBridge.searchTasks(args);
 					break;
 				case "batch_create_tasks":
-					result = await this.taskBridge.batchCreateTasks(args);
+					result = await taskBridge.batchCreateTasks(args);
 					break;
 				case "add_project_quick_capture":
-					result = { error: "Not implemented in DataflowBridge" };
+					result = await taskBridge.addProjectTaskToQuickCapture(
+						args
+					);
 					break;
 				case "update_task_status":
-					result = { error: "Not implemented in DataflowBridge" };
+					result = await taskBridge.updateTaskStatus(args);
 					break;
 				case "batch_update_task_status":
-					result = { error: "Not implemented in DataflowBridge" };
+					result = await taskBridge.batchUpdateTaskStatus(args);
 					break;
 				case "postpone_tasks":
-					result = { error: "Not implemented in DataflowBridge" };
+					result = await taskBridge.postponeTasks(args);
 					break;
 				case "list_all_metadata":
-					result = this.taskBridge.listAllTagsProjectsContexts();
+					result = taskBridge.listAllTagsProjectsContexts();
 					break;
 				case "list_tasks_for_period":
-					result = await this.taskBridge.listTasksForPeriod(args);
+					result = await taskBridge.listTasksForPeriod(args);
 					break;
 				case "list_tasks_in_range":
-					result = await (this.taskBridge as any).listTasksInRange?.(args) ?? { error: "Not implemented in DataflowBridge" };
+					if (
+						typeof (taskBridge as any).listTasksInRange ===
+						"function"
+					) {
+						result = await (taskBridge as any).listTasksInRange(
+							args
+						);
+					} else {
+						result = { error: "Not implemented in DataflowBridge" };
+					}
 					break;
 				default:
 					throw new Error(`Tool not found: ${toolName}`);
@@ -718,7 +967,11 @@ export class McpServer {
 				content: [
 					{
 						type: "text",
-						text: JSON.stringify({ success: false, error: error.message }, null, 2),
+						text: JSON.stringify(
+							{ success: false, error: error.message },
+							null,
+							2
+						),
 					},
 				],
 				isError: true,
@@ -729,7 +982,10 @@ export class McpServer {
 	/**
 	 * Handle MCP protocol request
 	 */
-	private async handleMcpRequest(request: any, sessionId?: string): Promise<any> {
+	private async handleMcpRequest(
+		request: any,
+		sessionId?: string
+	): Promise<any> {
 		const { method, params, id } = request;
 
 		try {
@@ -765,7 +1021,7 @@ export class McpServer {
 								sampling: {},
 							},
 						},
-						_sessionId: newSessionId,  // Internal field for header processing
+						_sessionId: newSessionId, // Internal field for header processing
 					};
 
 				case "tools/list":
@@ -789,7 +1045,7 @@ export class McpServer {
 				case "prompts/get":
 					const promptName = params?.name;
 					const prompts = this.getPrompts();
-					const prompt = prompts.find(p => p.name === promptName);
+					const prompt = prompts.find((p) => p.name === promptName);
 					if (!prompt) {
 						return {
 							jsonrpc: "2.0",
@@ -806,7 +1062,10 @@ export class McpServer {
 						result: {
 							...prompt,
 							// Build the prompt template based on the prompt name
-							messages: this.buildPromptMessages(promptName, params?.arguments),
+							messages: this.buildPromptMessages(
+								promptName,
+								params?.arguments
+							),
 						},
 					};
 
@@ -834,14 +1093,20 @@ export class McpServer {
 					const toolName = params?.name;
 					const toolArgs = params?.arguments || {};
 					try {
-						const result = await this.executeTool(toolName, toolArgs);
+						const result = await this.executeTool(
+							toolName,
+							toolArgs
+						);
 						return {
 							jsonrpc: "2.0",
 							id,
 							result,
 						};
 					} catch (error: any) {
-						if (error.message.includes("Unknown tool") || error.message.includes("Tool not found")) {
+						if (
+							error.message.includes("Unknown tool") ||
+							error.message.includes("Tool not found")
+						) {
 							return {
 								jsonrpc: "2.0",
 								id,
@@ -882,16 +1147,27 @@ export class McpServer {
 			return;
 		}
 
+		await this.ensureBridgeReady();
+
 		// Create HTTP server
 		this.httpServer = http.createServer(
 			async (req: IncomingMessage, res: ServerResponse) => {
 				// Enable CORS if configured
 				if (this.config.enableCors) {
 					res.setHeader("Access-Control-Allow-Origin", "*");
-					res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS");
+					res.setHeader(
+						"Access-Control-Allow-Methods",
+						"GET, POST, DELETE, OPTIONS"
+					);
 					// Allow both canonical and lowercase header spellings for robustness, including MCP-Protocol-Version
-					res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, authorization, Mcp-Session-Id, mcp-session-id, Mcp-App-Id, mcp-app-id, MCP-Protocol-Version, mcp-protocol-version, Accept");
-					res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
+					res.setHeader(
+						"Access-Control-Allow-Headers",
+						"Content-Type, Authorization, authorization, Mcp-Session-Id, mcp-session-id, Mcp-App-Id, mcp-app-id, MCP-Protocol-Version, mcp-protocol-version, Accept"
+					);
+					res.setHeader(
+						"Access-Control-Expose-Headers",
+						"Mcp-Session-Id"
+					);
 				}
 
 				// Handle OPTIONS for CORS preflight
@@ -922,7 +1198,7 @@ export class McpServer {
 				}
 
 				// MCP endpoint (also handle root path for compatibility)
-				if ((pathname === "/mcp") && req.method === "POST") {
+				if (pathname === "/mcp" && req.method === "POST") {
 					// Validate Origin header for security (DNS rebinding protection)
 					const origin = req.headers.origin as string;
 					if (origin && !this.isOriginAllowed(origin)) {
@@ -942,8 +1218,14 @@ export class McpServer {
 					}
 
 					// Check MCP-Protocol-Version header
-					const protocolVersion = req.headers["mcp-protocol-version"] as string;
-					if (protocolVersion && protocolVersion !== "2024-11-05" && protocolVersion !== "2025-06-18") {
+					const protocolVersion = req.headers[
+						"mcp-protocol-version"
+					] as string;
+					if (
+						protocolVersion &&
+						protocolVersion !== "2024-11-05" &&
+						protocolVersion !== "2025-06-18"
+					) {
 						res.statusCode = 400;
 						res.setHeader("Content-Type", "application/json");
 						res.end(
@@ -969,7 +1251,8 @@ export class McpServer {
 								id: null,
 								error: {
 									code: -32603,
-									message: "Unauthorized: Invalid or missing authentication token",
+									message:
+										"Unauthorized: Invalid or missing authentication token",
 								},
 							})
 						);
@@ -978,7 +1261,8 @@ export class McpServer {
 
 					// Validate client app identity to avoid cross-vault confusion
 					const expectedAppId = this.plugin.app.appId;
-					const headerAppId = (req.headers["mcp-app-id"] as string) || "";
+					const headerAppId =
+						(req.headers["mcp-app-id"] as string) || "";
 					const bearerAppId = this.authMiddleware.getClientAppId(req);
 					const clientAppId = headerAppId || bearerAppId || "";
 
@@ -995,8 +1279,12 @@ export class McpServer {
 									data: {
 										expectedAppId,
 										received: clientAppId || null,
-										source: headerAppId ? "header" : (bearerAppId ? "authorization" : "none")
-									}
+										source: headerAppId
+											? "header"
+											: bearerAppId
+											? "authorization"
+											: "none",
+									},
 								},
 							})
 						);
@@ -1009,9 +1297,11 @@ export class McpServer {
 					let sessionId = req.headers["mcp-session-id"] as string;
 
 					// Handle request body
+					// Set encoding to properly handle multi-byte UTF-8 characters
+					req.setEncoding("utf8");
 					let body = "";
 					req.on("data", (chunk) => {
-						body += chunk.toString();
+						body += chunk;
 					});
 
 					req.on("end", async () => {
@@ -1033,53 +1323,74 @@ export class McpServer {
 							);
 							return;
 						}
-						
+
 						try {
-							
 							// For non-initialize requests, validate session exists
 							if (request.method !== "initialize") {
 								if (!sessionId) {
-									console.warn("Missing session ID for method:", request.method);
+									console.warn(
+										"Missing session ID for method:",
+										request.method
+									);
 									res.statusCode = 200;
-									res.setHeader("Content-Type", "application/json");
+									res.setHeader(
+										"Content-Type",
+										"application/json"
+									);
 									res.end(
 										JSON.stringify({
 											jsonrpc: "2.0",
 											id: request.id,
 											error: {
 												code: -32603,
-												message: "Missing session ID. Initialize connection first.",
+												message:
+													"Missing session ID. Initialize connection first.",
 											},
 										})
 									);
 									return;
 								}
 								if (!this.sessions.has(sessionId)) {
-									console.warn("Invalid session ID:", sessionId);
+									console.warn(
+										"Invalid session ID:",
+										sessionId
+									);
 									res.statusCode = 200;
-									res.setHeader("Content-Type", "application/json");
+									res.setHeader(
+										"Content-Type",
+										"application/json"
+									);
 									res.end(
 										JSON.stringify({
 											jsonrpc: "2.0",
 											id: request.id,
 											error: {
 												code: -32603,
-												message: "Invalid or expired session",
+												message:
+													"Invalid or expired session",
 											},
 										})
 									);
 									return;
 								}
 							}
-							
+
 							// Handle MCP request
-							this.config.logLevel === "debug" && console.log("[MCP] <-", request);
-							const response = await this.handleMcpRequest(request, sessionId);
-							this.config.logLevel === "debug" && console.log("[MCP] ->", response);
+							this.config.logLevel === "debug" &&
+								console.log("[MCP] <-", request);
+							const response = await this.handleMcpRequest(
+								request,
+								sessionId
+							);
+							this.config.logLevel === "debug" &&
+								console.log("[MCP] ->", response);
 
 							// Add session ID to response headers for initialize request
 							if (response._sessionId) {
-								res.setHeader("Mcp-Session-Id", response._sessionId);
+								res.setHeader(
+									"Mcp-Session-Id",
+									response._sessionId
+								);
 								// Remove internal field from response
 								delete response._sessionId;
 							}
@@ -1111,30 +1422,33 @@ export class McpServer {
 					const sessionId = req.headers["mcp-session-id"] as string;
 					// Make session validation optional for SSE
 					if (sessionId && !this.sessions.has(sessionId)) {
-						console.warn("SSE connection with invalid session ID:", sessionId);
+						console.warn(
+							"SSE connection with invalid session ID:",
+							sessionId
+						);
 						// Continue anyway for compatibility
 					}
-					
+
 					// Set up SSE headers
 					res.writeHead(200, {
 						"Content-Type": "text/event-stream",
 						"Cache-Control": "no-cache",
-						"Connection": "keep-alive",
+						Connection: "keep-alive",
 					});
-					
+
 					// Send initial connection message
-					res.write("data: {\"type\":\"connected\"}\n\n");
-					
+					res.write('data: {"type":"connected"}\n\n');
+
 					// Keep connection alive with heartbeat
 					const heartbeat = setInterval(() => {
 						res.write(": heartbeat\n\n");
 					}, 30000);
-					
+
 					// Clean up on close
 					req.on("close", () => {
 						clearInterval(heartbeat);
 					});
-					
+
 					return;
 				}
 
@@ -1160,9 +1474,10 @@ export class McpServer {
 							mcp_version: "2025-06-18",
 							endpoints: {
 								mcp: "/mcp",
-								health: "/health"
+								health: "/health",
 							},
-							description: "MCP server for Obsidian task management"
+							description:
+								"MCP server for Obsidian task management",
 						})
 					);
 					return;
@@ -1195,25 +1510,29 @@ export class McpServer {
 					() => {
 						this.isRunning = true;
 						this.startTime = new Date();
-						
+
 						// Get actual port after binding (important when port is 0)
 						const address = this.httpServer.address();
 						this.actualPort = address?.port || this.config.port;
-						
+
 						console.log(
 							`MCP Server started on ${this.config.host}:${this.actualPort}`
 						);
-						
+
 						// Clean up old sessions periodically
 						setInterval(() => {
 							const now = Date.now();
 							for (const [id, session] of this.sessions) {
-								if (now - session.lastAccess.getTime() > 3600000) { // 1 hour
+								if (
+									now - session.lastAccess.getTime() >
+									3600000
+								) {
+									// 1 hour
 									this.sessions.delete(id);
 								}
 							}
 						}, 60000); // Check every minute
-						
+
 						resolve();
 					}
 				);
@@ -1283,10 +1602,10 @@ export class McpServer {
 			"app://obsidian.md",
 			"obsidian://",
 		];
-		
+
 		// Check exact match or prefix match
-		return allowedOrigins.some(allowed => 
-			origin === allowed || origin.startsWith(allowed + ":")
+		return allowedOrigins.some(
+			(allowed) => origin === allowed || origin.startsWith(allowed + ":")
 		);
 	}
 }
