@@ -50,7 +50,7 @@ export class FluentActionHandlers extends Component {
 		private app: App,
 		private plugin: TaskProgressBarPlugin,
 		private getWorkspaceId: () => string,
-		private useSideLeaves: () => boolean,
+		private useSideLeaves: () => boolean
 	) {
 		super();
 	}
@@ -167,7 +167,7 @@ export class FluentActionHandlers extends Component {
 	async handleTaskUpdate(
 		originalTask: Task,
 		updatedTask: Task,
-		successMessage?: string,
+		successMessage?: string
 	): Promise<void> {
 		if (!this.plugin.writeAPI) {
 			console.error("WriteAPI not available");
@@ -177,7 +177,7 @@ export class FluentActionHandlers extends Component {
 		try {
 			const updates = this.extractChangedFields(
 				originalTask,
-				updatedTask,
+				updatedTask
 			);
 			const writeResult = await this.plugin.writeAPI.updateTask({
 				taskId: originalTask.id,
@@ -205,16 +205,22 @@ export class FluentActionHandlers extends Component {
 	 */
 	async handleKanbanTaskStatusUpdate(
 		task: Task,
-		newStatusMark: string,
+		newStatusMark: string
 	): Promise<void> {
-		console.log(`[FluentActionHandlers] Processing kanban status update for task ${task.id}`);
-		console.log(`[FluentActionHandlers] Status change: ${task.status} -> ${newStatusMark}`);
+		console.log(
+			`[FluentActionHandlers] Processing kanban status update for task ${task.id}`
+		);
+		console.log(
+			`[FluentActionHandlers] Status change: ${task.status} -> ${newStatusMark}`
+		);
 
 		const isCompleted = this.isCompletedMark(newStatusMark);
 		const completedDate = isCompleted ? Date.now() : undefined;
 
 		if (task.status !== newStatusMark || task.completed !== isCompleted) {
-			console.log('[FluentActionHandlers] Status change detected, calling handleTaskUpdate...');
+			console.log(
+				"[FluentActionHandlers] Status change detected, calling handleTaskUpdate..."
+			);
 			await this.handleTaskUpdate(task, {
 				...task,
 				status: newStatusMark,
@@ -224,9 +230,11 @@ export class FluentActionHandlers extends Component {
 					completedDate: completedDate,
 				},
 			});
-			console.log('[FluentActionHandlers] handleTaskUpdate completed');
+			console.log("[FluentActionHandlers] handleTaskUpdate completed");
 		} else {
-			console.log('[FluentActionHandlers] No status change needed, skipping update');
+			console.log(
+				"[FluentActionHandlers] No status change needed, skipping update"
+			);
 		}
 	}
 
@@ -271,7 +279,7 @@ export class FluentActionHandlers extends Component {
 						},
 						(el) => {
 							createTaskCheckbox(mark, task, el);
-						},
+						}
 					);
 					subItem.titleEl.createEl("span", {
 						cls: "status-option",
@@ -424,7 +432,7 @@ export class FluentActionHandlers extends Component {
 	private addPostponeDateMenu(
 		menu: Menu,
 		task: Task,
-		dateType: TaskDateType,
+		dateType: TaskDateType
 	): void {
 		menu.addItem((item) => {
 			const subMenu = item
@@ -462,7 +470,7 @@ export class FluentActionHandlers extends Component {
 	private async postponeDate(
 		task: Task,
 		dateType: TaskDateType,
-		offsetDays: number,
+		offsetDays: number
 	): Promise<void> {
 		try {
 			const currentTimestamp = task.metadata?.[dateType];
@@ -476,7 +484,7 @@ export class FluentActionHandlers extends Component {
 				task,
 				dateType,
 				newTimestamp,
-				offsetDays,
+				offsetDays
 			);
 
 			const updatedTask: Task = {
@@ -485,13 +493,15 @@ export class FluentActionHandlers extends Component {
 			};
 
 			const action = offsetDays > 0 ? "postponed" : "advanced";
-			const message = `${this.getDateLabel(dateType)} ${action} by ${Math.abs(offsetDays)} day(s)`;
+			const message = `${this.getDateLabel(
+				dateType
+			)} ${action} by ${Math.abs(offsetDays)} day(s)`;
 
 			await this.handleTaskUpdate(task, updatedTask, t(message));
 		} catch (error) {
 			console.error(
 				"[FluentActionHandlers] Failed to postpone date:",
-				error,
+				error
 			);
 			new Notice(t("Failed to postpone date"));
 		}
@@ -500,7 +510,7 @@ export class FluentActionHandlers extends Component {
 	private openDatePicker(
 		task: Task,
 		dateType: TaskDateType,
-		isPostpone: boolean = false,
+		isPostpone: boolean = false
 	): void {
 		const currentDate = task.metadata?.[dateType];
 		const initialDate =
@@ -512,7 +522,7 @@ export class FluentActionHandlers extends Component {
 			this.app,
 			this.plugin,
 			initialDate,
-			this.getDateMark(dateType),
+			this.getDateMark(dateType)
 		);
 
 		modal.onDateSelected = async (dateStr: string | null) => {
@@ -526,14 +536,14 @@ export class FluentActionHandlers extends Component {
 
 			if (isPostpone && typeof currentDate === "number") {
 				const offsetDays = Math.round(
-					(newTimestamp - currentDate) / (24 * 60 * 60 * 1000),
+					(newTimestamp - currentDate) / (24 * 60 * 60 * 1000)
 				);
 
 				const updatedMetadata = smartPostponeRelatedDates(
 					task,
 					dateType,
 					newTimestamp,
-					offsetDays,
+					offsetDays
 				);
 
 				const updatedTask: Task = {
@@ -544,7 +554,7 @@ export class FluentActionHandlers extends Component {
 				await this.handleTaskUpdate(
 					task,
 					updatedTask,
-					t(`${this.getDateLabel(dateType)} updated`),
+					t(`${this.getDateLabel(dateType)} updated`)
 				);
 			} else {
 				const updatedTask: Task = {
@@ -558,7 +568,7 @@ export class FluentActionHandlers extends Component {
 				await this.handleTaskUpdate(
 					task,
 					updatedTask,
-					t(`${this.getDateLabel(dateType)} updated`),
+					t(`${this.getDateLabel(dateType)} updated`)
 				);
 			}
 		};
@@ -669,7 +679,7 @@ export class FluentActionHandlers extends Component {
 		} catch (error) {
 			console.error(
 				"[FluentActionHandlers] Failed to duplicate task:",
-				error,
+				error
 			);
 			new Notice(t("Failed to duplicate task"));
 		}
@@ -765,7 +775,7 @@ export class FluentActionHandlers extends Component {
 	 */
 	private async deleteTask(
 		task: Task,
-		deleteChildren: boolean,
+		deleteChildren: boolean
 	): Promise<void> {
 		if (!this.plugin.writeAPI) {
 			console.error("WriteAPI not available for deleteTask");
@@ -793,13 +803,13 @@ export class FluentActionHandlers extends Component {
 				new Notice(
 					t("Failed to delete task") +
 						": " +
-						(result.error || "Unknown error"),
+						(result.error || "Unknown error")
 				);
 			}
 		} catch (error) {
 			console.error("Error deleting task:", error);
 			new Notice(
-				t("Failed to delete task") + ": " + (error as any).message,
+				t("Failed to delete task") + ": " + (error as any).message
 			);
 		}
 	}
@@ -855,7 +865,7 @@ export class FluentActionHandlers extends Component {
 		try {
 			const lower = mark.toLowerCase();
 			const completedCfg = String(
-				this.plugin.settings.taskStatuses?.completed || "x",
+				this.plugin.settings.taskStatuses?.completed || "x"
 			);
 			const completedSet = completedCfg
 				.split("|")
@@ -872,7 +882,7 @@ export class FluentActionHandlers extends Component {
 	 */
 	private extractChangedFields(
 		originalTask: Task,
-		updatedTask: Task,
+		updatedTask: Task
 	): Partial<Task> {
 		const changes: Partial<Task> = {};
 
