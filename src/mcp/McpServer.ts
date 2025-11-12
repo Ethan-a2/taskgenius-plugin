@@ -16,6 +16,21 @@ const http = require("http");
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const url = require("url");
 
+/**
+ * Log entry for MCP tool calls
+ */
+export interface McpLogEntry {
+	timestamp: Date;
+	sessionId?: string;
+	method: string;
+	toolName?: string;
+	arguments: any;
+	result: any;
+	error?: string;
+	duration: number;
+	truncated?: boolean;
+}
+
 export class McpServer {
 	private httpServer: any;
 	private authMiddleware: AuthMiddleware;
@@ -27,6 +42,8 @@ export class McpServer {
 	private actualPort?: number;
 	private sessions: Map<string, { created: Date; lastAccess: Date }> =
 		new Map();
+	private logs: McpLogEntry[] = [];
+	private readonly MAX_LOGS = 1000;
 
 	constructor(
 		private plugin: TaskProgressBarPlugin,
@@ -60,6 +77,57 @@ export class McpServer {
 		} catch (e) {
 			return "obsidian-tasks";
 		}
+	}
+
+	/**
+	 * Truncate large data for logging
+	 */
+	private truncateForLog(data: any, maxLength: number = 500): any {
+		const str = JSON.stringify(data);
+		if (str.length <= maxLength) {
+			return data;
+		}
+
+		// Check if it's an array of tasks
+		if (Array.isArray(data) && data.length > 0) {
+			return {
+				_truncated: true,
+				_type: "array",
+				_count: data.length,
+				_sample: data.slice(0, 2), // Show first 2 items
+			};
+		}
+
+		// For other objects, just truncate the string
+		return {
+			_truncated: true,
+			_preview: str.substring(0, maxLength) + "...",
+		};
+	}
+
+	/**
+	 * Add a log entry
+	 */
+	private addLog(entry: McpLogEntry): void {
+		this.logs.unshift(entry); // Add to beginning
+		// Keep only MAX_LOGS entries
+		if (this.logs.length > this.MAX_LOGS) {
+			this.logs = this.logs.slice(0, this.MAX_LOGS);
+		}
+	}
+
+	/**
+	 * Get all logs (most recent first)
+	 */
+	public getLogs(): McpLogEntry[] {
+		return [...this.logs];
+	}
+
+	/**
+	 * Clear all logs
+	 */
+	public clearLogs(): void {
+		this.logs = [];
 	}
 
 	/**
@@ -853,11 +921,17 @@ export class McpServer {
 	/**
 	 * Execute a tool
 	 */
-	private async executeTool(toolName: string, args: any): Promise<any> {
+	private async executeTool(
+		toolName: string,
+		args: any,
+		sessionId?: string
+	): Promise<any> {
+		const startTime = Date.now();
 		const taskBridge = await this.requireTaskBridge();
-		try {
-			let result: any;
+		let result: any;
+		let error: string | undefined;
 
+		try {
 			switch (toolName) {
 				case "query_tasks":
 					result = await taskBridge.queryTasks(args);
@@ -950,6 +1024,19 @@ export class McpServer {
 					throw new Error(`Tool not found: ${toolName}`);
 			}
 
+			// Log successful execution
+			const duration = Date.now() - startTime;
+			this.addLog({
+				timestamp: new Date(),
+				sessionId,
+				method: "tools/call",
+				toolName,
+				arguments: args,
+				result: this.truncateForLog(result),
+				duration,
+				truncated: JSON.stringify(result).length > 500,
+			});
+
 			return {
 				content: [
 					{
@@ -958,17 +1045,32 @@ export class McpServer {
 					},
 				],
 			};
-		} catch (error: any) {
+		} catch (err: any) {
+			error = err.message;
+			const duration = Date.now() - startTime;
+
+			// Log failed execution
+			this.addLog({
+				timestamp: new Date(),
+				sessionId,
+				method: "tools/call",
+				toolName,
+				arguments: args,
+				result: null,
+				error,
+				duration,
+			});
+
 			// Re-throw tool not found errors so they can be handled properly
-			if (error.message.includes("Tool not found")) {
-				throw error;
+			if (err.message.includes("Tool not found")) {
+				throw err;
 			}
 			return {
 				content: [
 					{
 						type: "text",
 						text: JSON.stringify(
-							{ success: false, error: error.message },
+							{ success: false, error: err.message },
 							null,
 							2
 						),
@@ -1095,7 +1197,8 @@ export class McpServer {
 					try {
 						const result = await this.executeTool(
 							toolName,
-							toolArgs
+							toolArgs,
+							sessionId
 						);
 						return {
 							jsonrpc: "2.0",
@@ -1305,6 +1408,11 @@ export class McpServer {
 					});
 
 					req.on("end", async () => {
+						// Debug: log received body for UTF-8 validation
+						if (body.includes("content")) {
+							console.log("[MCP Debug] Received body:", body.substring(0, 300));
+						}
+
 						let request;
 						try {
 							request = JSON.parse(body);

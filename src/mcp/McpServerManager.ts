@@ -234,13 +234,17 @@ export class McpServerManager {
 	regenerateAuthToken(): string {
 		const newToken = AuthMiddleware.generateToken();
 		this.config.authToken = newToken;
-		
+
 		if (this.server) {
 			this.server.updateConfig({ authToken: newToken });
 		}
 
 		this.saveConfig();
 		return newToken;
+	}
+
+	getServer(): McpServer | undefined {
+		return this.server;
 	}
 
 	async cleanup(): Promise<void> {

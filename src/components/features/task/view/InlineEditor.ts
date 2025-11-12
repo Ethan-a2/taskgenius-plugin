@@ -349,7 +349,7 @@ export class InlineEditor extends Component {
 		// Add visual indicator for tgProject - only show if no user-set project exists
 		if (
 			this.task.metadata.tgProject &&
-			(!this.task.metadata.project || !this.task.metadata.project.trim())
+			(!this.task.metadata.project || typeof this.task.metadata.project !== 'string' || !this.task.metadata.project.trim())
 		) {
 			const tgProject = this.task.metadata.tgProject;
 			const indicator = container.createDiv({

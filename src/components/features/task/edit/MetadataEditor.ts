@@ -409,7 +409,7 @@ export class TaskMetadataEditor extends Component {
 		if (
 			isReadonly &&
 			this.task.metadata.tgProject &&
-			(!this.task.metadata.project || !this.task.metadata.project.trim())
+			(!this.task.metadata.project || typeof this.task.metadata.project !== 'string' || !this.task.metadata.project.trim())
 		) {
 			fieldContainer.addClass("project-readonly");
 			const indicator = fieldContainer.createDiv({

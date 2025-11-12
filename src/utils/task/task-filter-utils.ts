@@ -643,7 +643,8 @@ export function filterTasks(
 	if (filterRules.project) {
 		filtered = filtered.filter(
 			(task) =>
-				task.metadata.project?.trim() === filterRules.project?.trim(),
+				typeof task.metadata.project === 'string' && typeof filterRules.project === 'string' &&
+				task.metadata.project.trim() === filterRules.project.trim(),
 		);
 	}
 	if (filterRules.priority !== undefined) {

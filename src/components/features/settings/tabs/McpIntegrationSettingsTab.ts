@@ -8,6 +8,7 @@ import TaskProgressBarPlugin from "@/index";
 import { McpServerManager } from "@/mcp/McpServerManager";
 import { AuthMiddleware } from "@/mcp/auth/AuthMiddleware";
 import { ConfirmModal } from "@/components/ui/modals/ConfirmModal";
+import { McpLogModal } from "@/components/ui/modals/McpLogModal";
 import "@/styles/mcp-integration.css";
 import { TaskProgressBarSettingTab } from "@/setting";
 
@@ -517,6 +518,26 @@ export function renderMcpIntegrationSettingsTab(
 						}
 					} finally {
 						button.setDisabled(false);
+					}
+				});
+		});
+
+	// View Logs Button
+	new Setting(actionsContainer)
+		.setName(t("View Server Logs"))
+		.setDesc(t("View all MCP server tool calls and their results"))
+		.addButton((button) => {
+			button
+				.setButtonText(t("View Logs"))
+				.setIcon("file-text")
+				.onClick(() => {
+					const server = plugin.mcpServerManager?.getServer();
+					if (server) {
+						const logs = server.getLogs();
+						const modal = new McpLogModal(plugin, logs);
+						modal.open();
+					} else {
+						new Notice(t("MCP server is not running"));
 					}
 				});
 		});

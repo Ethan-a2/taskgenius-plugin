@@ -450,11 +450,20 @@ export class Augmentor {
 				? String(ctx.fileMeta?.[metadataKeyFromConfig]).trim()
 				: undefined;
 
-		const effectiveProjectName =
+		let effectiveProjectName =
 			ctx.projectName ||
 			projectFromMeta ||
 			projectFromMetadataKey ||
 			projectFromFrontmatter;
+
+		// Normalize effectiveProjectName to string: handle arrays (take first element), non-strings, etc.
+		if (effectiveProjectName) {
+			if (Array.isArray(effectiveProjectName)) {
+				effectiveProjectName = effectiveProjectName[0]?.toString() || undefined;
+			} else if (typeof effectiveProjectName !== 'string') {
+				effectiveProjectName = String(effectiveProjectName);
+			}
+		}
 
 		// Set project name if not already set
 		if (!metadata.project && effectiveProjectName) {

@@ -363,7 +363,7 @@ export class TaskDetailsComponent extends Component {
 		// Add visual indicator for tgProject - only show if no user-set project exists
 		if (
 			task.metadata.tgProject &&
-			(!task.metadata.project || !task.metadata.project.trim())
+			(!task.metadata.project || typeof task.metadata.project !== 'string' || !task.metadata.project.trim())
 		) {
 			const tgProject = task.metadata.tgProject;
 			const indicator = projectField.createDiv({

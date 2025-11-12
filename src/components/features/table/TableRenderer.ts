@@ -1295,7 +1295,7 @@ export class TableRenderer extends Component {
 		if (
 			isProjectColumn &&
 			row?.task?.metadata?.tgProject &&
-			(!row.task.metadata.project || !row.task.metadata.project.trim())
+			(!row.task.metadata.project || typeof row.task.metadata.project !== 'string' || !row.task.metadata.project.trim())
 		) {
 			const tgProject = row.task.metadata.tgProject;
 			const indicator = cellEl.createDiv({
@@ -1574,12 +1574,12 @@ export class TableRenderer extends Component {
 					});
 					break;
 				case "project":
-					if (task.metadata.project && task.metadata.project.trim()) {
+					if (task.metadata.project && typeof task.metadata.project === 'string' && task.metadata.project.trim()) {
 						values.add(task.metadata.project);
 					}
 					break;
 				case "context":
-					if (task.metadata.context && task.metadata.context.trim()) {
+					if (task.metadata.context && typeof task.metadata.context === 'string' && task.metadata.context.trim()) {
 						values.add(task.metadata.context);
 					}
 					break;

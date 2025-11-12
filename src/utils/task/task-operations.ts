@@ -579,7 +579,7 @@ export function getEffectiveProject(task: Task): string | undefined {
 	}
 
 	// Check original project - must be non-empty and not just whitespace
-	if (task.metadata.project && task.metadata.project.trim()) {
+	if (task.metadata.project && typeof task.metadata.project === 'string' && task.metadata.project.trim()) {
 		return task.metadata.project;
 	}
 
@@ -606,7 +606,7 @@ export function isProjectReadonly(task: Task): boolean {
 	}
 
 	// If there's an original project that's not empty/whitespace, it's always editable
-	if (task.metadata.project && task.metadata.project.trim()) {
+	if (task.metadata.project && typeof task.metadata.project === 'string' && task.metadata.project.trim()) {
 		return false;
 	}
 
@@ -633,7 +633,7 @@ export function hasProject(task: Task): boolean {
 	}
 
 	// Check if original project exists and is not empty/whitespace
-	if (task.metadata.project && task.metadata.project.trim()) {
+	if (task.metadata.project && typeof task.metadata.project === 'string' && task.metadata.project.trim()) {
 		return true;
 	}
 
