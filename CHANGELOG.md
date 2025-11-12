@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.9.9](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.8...9.9.9) (2025-11-12)
+
+### Features
+
+* **mcp:** add server logging system with modal viewer ([586e861](https://github.com/Quorafind/Obsidian-Task-Genius/commit/586e861))
+
 ## [9.9.8](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.7...9.9.8) (2025-11-11)
 
 ### Features
