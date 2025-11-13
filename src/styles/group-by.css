@@ -10,91 +10,6 @@
 	gap: 4px;
 }
 
-/* Group By Popover */
-.groupby-menu {
-	position: absolute;
-	z-index: var(--layer-popover);
-	background-color: var(--background-primary);
-	border: 1px solid var(--background-modifier-border);
-	border-radius: 8px;
-	box-shadow: var(--shadow-s);
-	min-width: 280px;
-	max-width: 320px;
-}
-
-.groupby-popover-content {
-	padding: 12px;
-}
-
-.groupby-popover-header {
-	margin-bottom: 12px;
-	/* border-bottom: 1px solid var(--background-modifier-border); */
-	padding-bottom: 8px;
-}
-
-.groupby-popover-header h3 {
-	margin: 0;
-	font-size: 1em;
-	font-weight: 600;
-	color: var(--text-normal);
-}
-
-.groupby-popover-options {
-	display: flex;
-	flex-direction: column;
-	gap: 4px;
-}
-
-.groupby-option {
-	display: flex;
-	align-items: center;
-	padding: 8px 12px;
-	cursor: pointer;
-	border-radius: 6px;
-	transition: background-color 0.2s ease;
-	gap: 12px;
-}
-
-.groupby-option:hover {
-	background-color: var(--background-modifier-hover);
-}
-
-.groupby-option.is-selected {
-	background-color: var(--interactive-accent);
-	color: var(--text-on-accent);
-}
-
-.groupby-option.is-selected .groupby-option-description {
-	color: var(--text-on-accent);
-	opacity: 0.8;
-}
-
-.groupby-option-icon {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	flex-shrink: 0;
-	width: 20px;
-	height: 20px;
-}
-
-.groupby-option-content {
-	flex: 1;
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-}
-
-.groupby-option-label {
-	font-size: 0.95em;
-	font-weight: 500;
-}
-
-.groupby-option-description {
-	font-size: 0.85em;
-	color: var(--text-muted);
-}
-
 /* Task Group Sections (reusing forecast section pattern) */
 .task-group-section {
 	margin-bottom: 8px;
@@ -107,10 +22,12 @@
 	cursor: pointer;
 	/* border-bottom: 1px solid var(--background-modifier-border); */
 	/* background-color: var(--background-secondary-alt); */
+	border-radius: var(--radius-s);
+	color: var(--text-muted);
 }
 
 .group-section-header:hover {
-	background-color: var(--background-modifier-hover);
+	background-color: var(--background-secondary-alt);
 }
 
 .group-section-header .section-toggle {
@@ -191,22 +108,22 @@
 /* Level-based indentation for nested groups */
 .task-group-section.level-0 {
 	margin-left: 0;
-	margin-bottom: 12px;
+	/* margin-bottom: 12px; */
 }
 
 .task-group-section.level-1 {
 	margin-left: var(--size-4-4);
-	margin-bottom: 4px;
+	/* margin-bottom: 4px; */
 }
 
 .task-group-section.level-2 {
 	margin-left: var(--size-4-8);
-	margin-bottom: 4px;
+	/* margin-bottom: 4px; */
 }
 
 .task-group-section.level-3 {
 	margin-left: var(--size-4-12);
-	margin-bottom: 4px;
+	/* margin-bottom: 4px; */
 }
 
 /* Folder group headers (top-level groups with children) */
@@ -214,12 +131,14 @@
 	position: relative; /* Added for proper positioning */
 	font-weight: 600;
 	font-size: 1em;
-	background-color: var(--background-secondary-alt);
+	/* background-color: var(--background-secondary-alt); */
 	padding: 10px 15px;
+	color: var(--text-muted);
 }
 
 .group-section-header.folder-group:hover {
-	background-color: var(--background-modifier-hover);
+	background-color: var(--background-secondary-alt);
+	color: var(--text-accent);
 }
 
 /* File group headers (leaf groups) */
@@ -231,12 +150,13 @@
 }
 
 .group-section-header.file-group:hover {
-	background-color: var(--background-modifier-hover);
+	background-color: var(--background-secondary-alt);
+	color: var(--text-accent);
 }
 
 .group-section-header.file-group .section-title {
 	font-weight: 500;
-	color: var(--text-normal);
+	/* color: var(--text-accent); */
 }
 
 /* Content container for nested groups */
