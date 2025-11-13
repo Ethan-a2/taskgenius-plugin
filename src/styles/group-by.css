@@ -1,0 +1,286 @@
+/* Group By Component Styles */
+
+/* Note: Group By button is now dynamically registered in FluentTopNavigation */
+/* Legacy styles below are kept for backward compatibility with non-Fluent views */
+
+/* Filter controls container (now only contains filter input) */
+.content-filter-controls {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+/* Group By Popover */
+.groupby-menu {
+	position: absolute;
+	z-index: var(--layer-popover);
+	background-color: var(--background-primary);
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	box-shadow: var(--shadow-s);
+	min-width: 280px;
+	max-width: 320px;
+}
+
+.groupby-popover-content {
+	padding: 12px;
+}
+
+.groupby-popover-header {
+	margin-bottom: 12px;
+	/* border-bottom: 1px solid var(--background-modifier-border); */
+	padding-bottom: 8px;
+}
+
+.groupby-popover-header h3 {
+	margin: 0;
+	font-size: 1em;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.groupby-popover-options {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.groupby-option {
+	display: flex;
+	align-items: center;
+	padding: 8px 12px;
+	cursor: pointer;
+	border-radius: 6px;
+	transition: background-color 0.2s ease;
+	gap: 12px;
+}
+
+.groupby-option:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.groupby-option.is-selected {
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}
+
+.groupby-option.is-selected .groupby-option-description {
+	color: var(--text-on-accent);
+	opacity: 0.8;
+}
+
+.groupby-option-icon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	width: 20px;
+	height: 20px;
+}
+
+.groupby-option-content {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.groupby-option-label {
+	font-size: 0.95em;
+	font-weight: 500;
+}
+
+.groupby-option-description {
+	font-size: 0.85em;
+	color: var(--text-muted);
+}
+
+/* Task Group Sections (reusing forecast section pattern) */
+.task-group-section {
+	margin-bottom: 8px;
+}
+
+.group-section-header {
+	display: flex;
+	align-items: center;
+	padding: 8px 15px;
+	cursor: pointer;
+	/* border-bottom: 1px solid var(--background-modifier-border); */
+	/* background-color: var(--background-secondary-alt); */
+}
+
+.group-section-header:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.group-section-header .section-toggle {
+	margin-right: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.group-section-header .section-title {
+	flex: 1;
+	font-weight: 600;
+	font-size: 0.95em;
+}
+
+.group-section-header .section-count {
+	font-size: 0.8em;
+	color: var(--text-muted);
+	background-color: var(--background-modifier-border);
+	border-radius: 10px;
+	height: var(--size-4-5);
+	min-width: var(--size-4-5);
+	padding: 0 6px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.task-group-section .section-tasks {
+	display: flex;
+	flex-direction: column;
+	padding-left: var(--size-4-8);
+}
+
+/* Group by priority - special coloring */
+.task-group-section[data-group-key="priority-high"] .group-section-header {
+	border-left: 3px solid var(--text-error);
+}
+
+.task-group-section[data-group-key="priority-high"] .section-title {
+	color: var(--text-error);
+}
+
+.task-group-section[data-group-key="priority-medium"] .group-section-header {
+	border-left: 3px solid var(--text-warning);
+}
+
+.task-group-section[data-group-key="priority-medium"] .section-title {
+	color: var(--text-warning);
+}
+
+/* Group by due date - highlight past due */
+.task-group-section[data-group-key="due-past"] .group-section-header {
+	border-left: 3px solid var(--text-error);
+}
+
+.task-group-section[data-group-key="due-past"] .section-title {
+	color: var(--text-error);
+}
+
+.task-group-section[data-group-key="due-past"] .section-count {
+	background-color: var(--text-error);
+	color: white;
+}
+
+.task-group-section[data-group-key="due-today"] .group-section-header {
+	border-left: 3px solid var(--interactive-accent);
+}
+
+.task-group-section[data-group-key="due-today"] .section-title {
+	color: var(--interactive-accent);
+}
+
+/* ========================================
+   Nested Group Styles
+   ======================================== */
+
+/* Level-based indentation for nested groups */
+.task-group-section.level-0 {
+	margin-left: 0;
+	margin-bottom: 12px;
+}
+
+.task-group-section.level-1 {
+	margin-left: var(--size-4-4);
+	margin-bottom: 4px;
+}
+
+.task-group-section.level-2 {
+	margin-left: var(--size-4-8);
+	margin-bottom: 4px;
+}
+
+.task-group-section.level-3 {
+	margin-left: var(--size-4-12);
+	margin-bottom: 4px;
+}
+
+/* Folder group headers (top-level groups with children) */
+.group-section-header.folder-group {
+	position: relative; /* Added for proper positioning */
+	font-weight: 600;
+	font-size: 1em;
+	background-color: var(--background-secondary-alt);
+	padding: 10px 15px;
+}
+
+.group-section-header.folder-group:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+/* File group headers (leaf groups) */
+.group-section-header.file-group {
+	font-weight: 500;
+	font-size: 0.9em;
+	background-color: var(--background-primary);
+	padding: 6px 12px;
+}
+
+.group-section-header.file-group:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.group-section-header.file-group .section-title {
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+/* Content container for nested groups */
+.group-section-content {
+	overflow: hidden;
+	transition: opacity 0.15s ease-out;
+	padding-left: var(--size-4-4);
+}
+
+.group-section-content:not([style*="display: none"]) {
+	opacity: 1;
+}
+
+/* Adjust toggle icons for nested levels */
+.task-group-section.level-1 .section-toggle,
+.task-group-section.level-2 .section-toggle,
+.task-group-section.level-3 .section-toggle {
+	opacity: 0.7;
+}
+
+/* Count badge adjustments for nested groups */
+.task-group-section.level-1 .section-count {
+	font-size: 0.75em;
+	height: 18px;
+	min-width: 18px;
+	padding: 0 5px;
+}
+
+/* Collapsed state hint */
+.group-section-content[style*="display: none"] ~ .group-section-header {
+	opacity: 0.85;
+}
+
+/* Responsive adjustments for narrow screens */
+@media (max-width: 768px) {
+	.task-group-section.level-1 {
+		margin-left: 12px;
+	}
+
+	.task-group-section.level-2 {
+		margin-left: 24px;
+	}
+
+	.task-group-section.level-3 {
+		margin-left: 36px;
+	}
+}

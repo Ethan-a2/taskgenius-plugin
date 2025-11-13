@@ -1,4 +1,11 @@
-import { App, Component, setIcon, debounce } from "obsidian";
+import {
+	App,
+	Component,
+	setIcon,
+	debounce,
+	ExtraButtonComponent,
+	Menu,
+} from "obsidian";
 import { Task } from "@/types/task";
 import { TaskListItemComponent } from "./listItem"; // Re-import needed components
 import { ViewMode, getViewSettingOrDefault } from "@/common/setting-definition"; // 导入 SortCriterion
@@ -7,15 +14,29 @@ import { TaskTreeItemComponent } from "./treeItem"; // Re-import needed componen
 import { t } from "@/translations/helper";
 import TaskProgressBarPlugin from "@/index";
 import { getInitialViewMode, saveViewMode } from "@/utils/ui/view-mode-utils";
+import { TopNavigation } from "@/components/features/fluent/components/FluentTopNavigation";
 
 import "@/styles/task-list.css";
 import "@/styles/tree-view.css";
 import "@/styles/modern.css";
+import "@/styles/group-by.css";
 
 // @ts-ignore
 import { filterTasks } from "@/utils/task/task-filter-utils";
 import { sortTasks } from "@/commands/sortTaskCommands"; // 导入 sortTasks 函数
 import { TaskSelectionManager } from "@/components/features/task/selection/TaskSelectionManager";
+import { GroupByDimension, TaskGroup } from "@/types/groupBy";
+import {
+	groupTasksBy,
+	groupTasksByFilePathNested,
+} from "@/utils/grouping/taskGrouping";
+import {
+	getGroupByConfig,
+	setGroupByConfig,
+	getGroupExpandedState,
+	setGroupExpandedState,
+} from "@/utils/grouping/groupByStorage";
+import { TaskListRendererComponent } from "./TaskList";
 
 interface ContentComponentParams {
 	onTaskSelected?: (task: Task | null) => void;
@@ -50,6 +71,13 @@ export class ContentComponent extends Component {
 	private nextRootTaskIndex = 0; // Index for next tree root batch
 	private rootTasks: Task[] = []; // Root tasks for tree view
 
+	// Group By State
+	private groupByDimension: GroupByDimension = "none";
+	private taskGroups: TaskGroup[] = [];
+
+	// Top Navigation reference (for registering custom buttons)
+	private topNavigation: TopNavigation | null = null;
+
 	// State
 	private currentViewId: ViewMode = "inbox"; // Renamed from currentViewMode
 	private selectedProjectForView: string | null = null; // Keep track if a specific project is filtered (for project view)
@@ -83,6 +111,9 @@ export class ContentComponent extends Component {
 		// Initialize view mode from saved state or global default
 		this.initializeViewMode();
 
+		// Initialize Group By from saved state
+		this.initializeGroupBy();
+
 		// Set up intersection observer for lazy loading
 		this.initializeVirtualList();
 	}
@@ -102,8 +133,13 @@ export class ContentComponent extends Component {
 			text: t("0 tasks"),
 		});
 
+		// Filter controls container
+		const filterControlsEl = this.headerEl.createDiv({
+			cls: "content-filter-controls",
+		});
+
 		// Filter controls
-		const filterEl = this.headerEl.createDiv({ cls: "content-filter" });
+		const filterEl = filterControlsEl.createDiv({ cls: "content-filter" });
 		this.filterInput = filterEl.createEl("input", {
 			cls: "filter-input",
 			attr: { type: "text", placeholder: t("Filter tasks...") },
@@ -123,10 +159,10 @@ export class ContentComponent extends Component {
 		// ...
 
 		// Event listeners
-		let filterTimeout: NodeJS.Timeout;
+		let filterTimeout: number;
 		this.registerDomEvent(this.filterInput, "input", () => {
 			clearTimeout(filterTimeout);
-			filterTimeout = setTimeout(() => {
+			filterTimeout = window.setTimeout(() => {
 				this.filterTasks(this.filterInput.value);
 			}, 300); // 增加 300ms 防抖延迟
 		});
@@ -201,6 +237,306 @@ export class ContentComponent extends Component {
 		}
 	}
 
+	/**
+	 * Initialize Group By from saved state
+	 */
+	private initializeGroupBy() {
+		this.groupByDimension = getGroupByConfig(this.currentViewId);
+	}
+
+	/**
+	 * Show the Group By menu using Obsidian's native Menu
+	 */
+	private showGroupByMenu(): void {
+		const menu = new Menu();
+
+		// Define grouping options
+		const groupByOptions: Array<{
+			value: GroupByDimension;
+			label: string;
+			icon: string;
+		}> = [
+			{ value: "none", label: t("None"), icon: "x" },
+			{ value: "filePath", label: t("File Path"), icon: "folder" },
+			{ value: "dueDate", label: t("Due Date"), icon: "calendar" },
+			{ value: "priority", label: t("Priority"), icon: "signal" },
+			{ value: "project", label: t("Project"), icon: "folder-tree" },
+			{ value: "tags", label: t("Tags"), icon: "tag" },
+			{ value: "status", label: t("Status"), icon: "check-circle" },
+		];
+
+		// Add menu items
+		groupByOptions.forEach((option) => {
+			menu.addItem((item) => {
+				item.setTitle(option.label)
+					.setIcon(option.icon)
+					.setChecked(this.groupByDimension === option.value)
+					.onClick(() => {
+						if (option.value !== this.groupByDimension) {
+							this.groupByDimension = option.value;
+							setGroupByConfig(this.currentViewId, option.value);
+							this.applyFilters(); // Re-apply filters and grouping
+							this.debounceRefreshTaskList();
+						}
+					});
+			});
+		});
+
+		// Show menu at button position
+		const buttonEl = document.querySelector(
+			'.fluent-nav-custom-buttons [aria-label="' + t("Group By") + '"]'
+		) as HTMLElement;
+
+		if (buttonEl) {
+			menu.showAtMouseEvent(
+				new MouseEvent("click", {
+					clientX: buttonEl.getBoundingClientRect().left,
+					clientY: buttonEl.getBoundingClientRect().bottom,
+				})
+			);
+		} else {
+			// Fallback: show at current mouse position
+			menu.showAtMouseEvent(new MouseEvent("click"));
+		}
+	}
+
+	/**
+	 * Apply grouping to filtered tasks
+	 */
+	private applyGrouping() {
+		if (this.groupByDimension === "none") {
+			this.taskGroups = [];
+			return;
+		}
+
+		// Use nested grouping for filePath dimension
+		if (this.groupByDimension === "filePath") {
+			this.taskGroups = groupTasksByFilePathNested(this.filteredTasks);
+		} else {
+			this.taskGroups = groupTasksBy(
+				this.filteredTasks,
+				this.groupByDimension
+			);
+		}
+	}
+
+	/**
+	 * Render grouped tasks in sections (similar to forecast view)
+	 * Supports nested groups with lazy rendering (collapsed groups don't render tasks)
+	 */
+	private renderGroupedTasks() {
+		// Cleanup any group renderers from previous render
+		this.cleanupGroupRenderers();
+
+		// Build task map for tree view
+		const taskMap = new Map<string, Task>();
+		this.notFilteredTasks.forEach((task) => taskMap.set(task.id, task));
+
+		// Render each top-level group recursively
+		this.taskGroups.forEach((group) => {
+			this.renderGroupRecursive(group, this.taskListEl, taskMap, 0);
+		});
+	}
+
+	/**
+	 * Recursively render a group and its children
+	 * @param group - The group to render
+	 * @param containerEl - Parent container element
+	 * @param taskMap - Map of all tasks for tree view
+	 * @param level - Nesting level (0 = top level)
+	 */
+	private renderGroupRecursive(
+		group: TaskGroup,
+		containerEl: HTMLElement,
+		taskMap: Map<string, Task>,
+		level: number
+	): void {
+		// Create section element with level-specific class
+		const sectionEl = containerEl.createDiv({
+			cls: `task-group-section level-${level}`,
+		});
+		sectionEl.setAttribute("data-group-key", group.key);
+		sectionEl.setAttribute("data-level", level.toString());
+
+		// Restore expanded state from localStorage
+		group.isExpanded = getGroupExpandedState(this.currentViewId, group.key);
+
+		// Section header
+		const headerEl = sectionEl.createDiv({
+			cls: `group-section-header ${
+				group.children ? "folder-group" : "file-group"
+			}`,
+		});
+
+		// Expand/collapse toggle
+		const toggleEl = headerEl.createDiv({
+			cls: "section-toggle",
+		});
+		setIcon(toggleEl, group.isExpanded ? "chevron-down" : "chevron-right");
+
+		// Section title
+		const titleEl = headerEl.createDiv({
+			cls: "section-title",
+		});
+		titleEl.setText(group.title);
+
+		// Task count badge
+		const countEl = headerEl.createDiv({
+			cls: "section-count",
+		});
+		countEl.setText(`${group.tasks.length}`);
+
+		// Content container (for tasks or child groups)
+		const contentEl = sectionEl.createDiv({
+			cls: "group-section-content",
+		});
+
+		// Initially hide if collapsed
+		if (!group.isExpanded) {
+			contentEl.hide();
+		}
+
+		// Register toggle event
+		this.registerDomEvent(headerEl, "click", () => {
+			group.isExpanded = !group.isExpanded;
+
+			// Persist state to localStorage
+			setGroupExpandedState(
+				this.currentViewId,
+				group.key,
+				group.isExpanded
+			);
+
+			// Update icon
+			setIcon(
+				toggleEl,
+				group.isExpanded ? "chevron-down" : "chevron-right"
+			);
+
+			// Show/hide and render/destroy content
+			if (group.isExpanded) {
+				contentEl.show();
+				this.renderGroupContent(group, contentEl, taskMap, level);
+			} else {
+				this.destroyGroupContent(group, contentEl);
+				contentEl.hide();
+			}
+		});
+
+		// Render content if expanded
+		if (group.isExpanded) {
+			this.renderGroupContent(group, contentEl, taskMap, level);
+		}
+	}
+
+	/**
+	 * Render content of a group (either child groups or tasks)
+	 * @param group - The group whose content to render
+	 * @param containerEl - Container element for the content
+	 * @param taskMap - Map of all tasks for tree view
+	 * @param level - Current nesting level
+	 */
+	private renderGroupContent(
+		group: TaskGroup,
+		containerEl: HTMLElement,
+		taskMap: Map<string, Task>,
+		level: number
+	): void {
+		// Clear existing content
+		containerEl.empty();
+
+		// If group has children, render them recursively
+		if (group.children && group.children.length > 0) {
+			group.children.forEach((childGroup) => {
+				this.renderGroupRecursive(
+					childGroup,
+					containerEl,
+					taskMap,
+					level + 1
+				);
+			});
+		} else {
+			// Leaf node: render tasks using TaskListRendererComponent
+			group.renderer = new TaskListRendererComponent(
+				this,
+				containerEl,
+				this.plugin,
+				this.app,
+				this.currentViewId
+			);
+
+			// Set up callbacks
+			if (this.params.onTaskSelected) {
+				group.renderer.onTaskSelected = this.params.onTaskSelected;
+			}
+			if (this.params.onTaskCompleted) {
+				group.renderer.onTaskCompleted = this.params.onTaskCompleted;
+			}
+			if (this.params.onTaskContextMenu) {
+				group.renderer.onTaskContextMenu =
+					this.params.onTaskContextMenu;
+			}
+
+			// Set up task update callback
+			group.renderer.onTaskUpdate = async (
+				originalTask: Task,
+				updatedTask: Task
+			) => {
+				if (this.params.onTaskUpdate) {
+					await this.params.onTaskUpdate(originalTask, updatedTask);
+				}
+			};
+
+			// Render tasks using the group's renderer
+			group.renderer.renderTasks(
+				group.tasks,
+				this.isTreeView,
+				taskMap,
+				t("No tasks in this group.")
+			);
+		}
+	}
+
+	/**
+	 * Destroy content of a group and its children (recursively)
+	 * Improved version: no DOM queries, direct recursion on data structure
+	 * @param group - The group whose content to destroy
+	 * @param containerEl - Container element
+	 */
+	private destroyGroupContent(
+		group: TaskGroup,
+		containerEl: HTMLElement
+	): void {
+		// Recursively destroy child groups (depth-first)
+		if (group.children && group.children.length > 0) {
+			group.children.forEach((childGroup) => {
+				// Recursively destroy children first
+				this.destroyGroupContent(childGroup, containerEl);
+			});
+		}
+
+		// Destroy current group's renderer
+		if (group.renderer) {
+			this.removeChild(group.renderer);
+			group.renderer = undefined;
+		}
+
+		// Clear DOM (done once at the end)
+		containerEl.empty();
+	}
+
+	/**
+	 * Cleanup group renderers
+	 */
+	private cleanupGroupRenderers() {
+		this.taskGroups.forEach((group) => {
+			if (group.renderer) {
+				this.removeChild(group.renderer);
+				group.renderer = undefined;
+			}
+		});
+	}
+
 	public setTasks(
 		tasks: Task[],
 		notFilteredTasks: Task[],
@@ -269,8 +605,64 @@ export class ContentComponent extends Component {
 		// Re-initialize view mode for the new view
 		this.initializeViewMode();
 
+		// Re-initialize Group By for the new view
+		this.initializeGroupBy();
+
 		this.applyFilters();
 		this.debounceRefreshTaskList();
+	}
+
+	/**
+	 * Set the TopNavigation reference and register Group By button
+	 */
+	public setTopNavigation(nav: TopNavigation | null): void {
+		// Unregister old button if exists
+		if (this.topNavigation) {
+			this.unregisterGroupByButton();
+		}
+
+		this.topNavigation = nav;
+
+		// Register new button if nav is provided
+		if (nav) {
+			this.registerGroupByButton();
+		}
+	}
+
+	/**
+	 * Register Group By button in TopNavigation
+	 */
+	private registerGroupByButton(): void {
+		if (!this.topNavigation) {
+			return;
+		}
+
+		this.topNavigation.registerCustomButton({
+			id: "content-group-by",
+			icon: "folder-tree",
+			tooltip: t("Group By"),
+			onClick: () => {
+				this.showGroupByMenu();
+			},
+		});
+
+		console.log(
+			"[ContentComponent] Registered Group By button in TopNavigation"
+		);
+	}
+
+	/**
+	 * Unregister Group By button from TopNavigation
+	 */
+	private unregisterGroupByButton(): void {
+		if (!this.topNavigation) {
+			return;
+		}
+
+		this.topNavigation.unregisterCustomButton("content-group-by");
+		console.log(
+			"[ContentComponent] Unregistered Group By button from TopNavigation"
+		);
 	}
 
 	private applyFilters() {
@@ -327,6 +719,9 @@ export class ContentComponent extends Component {
 			});
 		}
 
+		// Apply grouping after filtering and sorting
+		this.applyGrouping();
+
 		// Update the task count display
 		this.countEl.setText(`${this.filteredTasks.length} ${t("tasks")}`);
 	}
@@ -354,6 +749,7 @@ export class ContentComponent extends Component {
 	private cleanupComponents() {
 		this.disposeComponentList(this.taskComponents);
 		this.disposeComponentList(this.treeComponents);
+		this.cleanupGroupRenderers();
 		this.taskComponents = [];
 		this.treeComponents = [];
 		this.taskListObserver?.disconnect();
@@ -371,9 +767,7 @@ export class ContentComponent extends Component {
 		if (!this.containerEl) return false;
 		const inDom = document.body.contains(this.containerEl);
 		if (!inDom) return false;
-		const style = window.getComputedStyle(this.containerEl);
-		if (style.display === "none" || style.visibility === "hidden")
-			return false;
+		if (!this.containerEl.isShown()) return false;
 		const rect = this.containerEl.getBoundingClientRect();
 		return rect.width > 0 && rect.height > 0;
 	}
@@ -443,6 +837,20 @@ export class ContentComponent extends Component {
 				this.disposeComponentList(previousTaskComponents);
 				this.disposeComponentList(previousTreeComponents);
 				this.addEmptyState(t("No tasks found."));
+				return;
+			}
+
+			// Check if Group By is active
+			if (
+				this.groupByDimension !== "none" &&
+				this.taskGroups.length > 0
+			) {
+				// Use section-based rendering for grouped tasks
+				this.taskListEl.replaceChildren();
+				this.disposeComponentList(previousTaskComponents);
+				this.disposeComponentList(previousTreeComponents);
+				this.renderGroupedTasks();
+				this.restoreScrollState(prevScrollState);
 				return;
 			}
 
@@ -1046,6 +1454,9 @@ export class ContentComponent extends Component {
 	}
 
 	onunload() {
+		// Unregister Group By button from TopNavigation
+		this.unregisterGroupByButton();
+
 		this.cleanupComponents(); // Use the cleanup method
 		this.containerEl.empty(); // Extra safety
 		this.containerEl.remove();
