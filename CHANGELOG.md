@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.10.1](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.10.0...9.10.1) (2025-11-13)
+
+### Bug Fixes
+
+* **quick-capture:** prevent duplicate tags when typing multi-level tags ([88787d5](https://github.com/Quorafind/Obsidian-Task-Genius/commit/88787d5))
+
 ## [9.10.0](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.9...9.10.0) (2025-11-13)
 
 ### Features
