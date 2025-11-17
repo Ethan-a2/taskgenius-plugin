@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.10.3](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.10.2...9.10.3) (2025-11-17)
+
+### Bug Fixes
+
+* **editor:** correct transaction filter execution order for status cycling ([0da1978](https://github.com/Quorafind/Obsidian-Task-Genius/commit/0da1978))
+
 ## [9.10.2](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.10.1...9.10.2) (2025-11-14)
 
 ### Refactors
