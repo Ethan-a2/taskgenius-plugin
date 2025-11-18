@@ -106,7 +106,7 @@ function getStatusDisplayName(
 ): string {
 	// Priority 1: User-configured status marks
 	if (settings) {
-		const { marks: taskStatusMarks } = getTaskStatusConfig(settings);
+		const { marks: taskStatusMarks } = getTaskStatusConfig(settings, mark);
 		for (const [statusName, statusMark] of Object.entries(
 			taskStatusMarks,
 		)) {

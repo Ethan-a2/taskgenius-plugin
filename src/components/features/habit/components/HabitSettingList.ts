@@ -138,7 +138,7 @@ export class HabitList {
 			this.app,
 			this.plugin,
 			habitData || null,
-			(updatedHabit: BaseHabitData) => {
+			async (updatedHabit: BaseHabitData) => {
 				// 确保habits数组已初始化
 				if (!this.plugin.settings.habit.habits) {
 					this.plugin.settings.habit.habits = [];
@@ -159,9 +159,9 @@ export class HabitList {
 				}
 
 				// 保存设置并刷新显示
-				this.plugin.saveSettings();
+				await this.plugin.saveSettings();
 				// 重新初始化习惯索引，通知视图刷新
-				this.plugin.habitManager?.initializeHabits();
+				await this.plugin.habitManager?.initializeHabits();
 				this.render();
 				new Notice(habitData ? t("Habit updated") : t("Habit added"));
 			},
@@ -199,7 +199,7 @@ export class HabitList {
 					.setWarning()
 					.setButtonText(t("Delete"))
 					.setClass("habit-delete-button-confirm")
-					.onClick(() => {
+					.onClick(async () => {
 						// 确保habits数组已初始化
 						if (!this.plugin.settings.habit.habits) {
 							this.plugin.settings.habit.habits = [];
@@ -213,9 +213,9 @@ export class HabitList {
 						);
 						if (index > -1) {
 							habits.splice(index, 1);
-							this.plugin.saveSettings();
+							await this.plugin.saveSettings();
 							// 重新初始化习惯索引，通知视图刷新
-							this.plugin.habitManager?.initializeHabits();
+							await this.plugin.habitManager?.initializeHabits();
 							this.render();
 							new Notice(t("Habit deleted"));
 						}
