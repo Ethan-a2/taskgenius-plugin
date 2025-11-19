@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.11.0](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.10.3...9.11.0) (2025-11-19)
+
+### Features
+
+* **status:** extend multi-cycle support to all task switching contexts ([6894195](https://github.com/Quorafind/Obsidian-Task-Genius/commit/6894195))
+* **kanban:** prevent dragging tasks into Other column ([c821558](https://github.com/Quorafind/Obsidian-Task-Genius/commit/c821558))
+* **kanban:** add cycle selector and Other column for unmatched tasks ([36d8340](https://github.com/Quorafind/Obsidian-Task-Genius/commit/36d8340))
+* **status:** add multi-cycle status support with priority-based selection ([7244d91](https://github.com/Quorafind/Obsidian-Task-Genius/commit/7244d91))
+
+### Bug Fixes
+
+* add async/await to habit operations and mark parameter to status config ([bf36bf2](https://github.com/Quorafind/Obsidian-Task-Genius/commit/bf36bf2))
+
 ## [9.10.3](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.10.2...9.10.3) (2025-11-17)
 
 ### Bug Fixes
