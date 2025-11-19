@@ -3,12 +3,14 @@ import {
 	Component,
 	debounce,
 	MarkdownPostProcessorContext,
-	setIcon,
 	TFile,
 } from "obsidian";
 import { getTasksAPI } from "@/utils";
 import { parseTaskLine } from "@/utils/task/task-operations";
-import { getTaskStatusConfig } from "@/utils/status-cycle-resolver";
+import {
+	getTaskStatusConfig,
+	getNextStatusPrimary,
+} from "@/utils/status-cycle-resolver";
 
 // This component replaces standard checkboxes with custom text marks in reading view
 export function applyTaskTextMarks({
@@ -207,19 +209,53 @@ class TaskTextMark extends Component {
 			(state) => !excludeMarksFromCycle.includes(state),
 		);
 
-		if (remainingCycle.length === 0) return;
+		let nextMark: string;
+		let nextState: string;
+		let currentState: string;
 
-		// Find current state in cycle
-		let currentState =
-			Object.keys(marks).find(
-				(state) => marks[state] === this.currentMark,
-			) || remainingCycle[0];
+		// Try to use multi-cycle configuration first
+		if (
+			this.plugin.settings.statusCycles &&
+			this.plugin.settings.statusCycles.length > 0
+		) {
+			const nextStatusResult = getNextStatusPrimary(
+				this.currentMark,
+				this.plugin.settings.statusCycles,
+			);
 
-		// Find next state in cycle
-		const currentIndex = remainingCycle.indexOf(currentState);
-		const nextIndex = (currentIndex + 1) % remainingCycle.length;
-		const nextState = remainingCycle[nextIndex];
-		const nextMark = marks[nextState] || " ";
+			if (nextStatusResult) {
+				nextState = nextStatusResult.statusName;
+				nextMark = nextStatusResult.mark;
+				// Find current state for Tasks API check
+				currentState =
+					Object.keys(marks).find(
+						(state) => marks[state] === this.currentMark,
+					) || nextStatusResult.cycle.cycle[0];
+			} else if (remainingCycle.length > 0) {
+				// If not found in multi-cycle, fall back to first status in current cycle
+				currentState = remainingCycle[0];
+				nextState = remainingCycle[0];
+				nextMark = marks[nextState] || " ";
+			} else {
+				// No cycle available
+				return;
+			}
+		} else {
+			// Fall back to legacy single-cycle logic
+			if (remainingCycle.length === 0) return;
+
+			// Find current state in cycle
+			currentState =
+				Object.keys(marks).find(
+					(state) => marks[state] === this.currentMark,
+				) || remainingCycle[0];
+
+			// Find next state in cycle
+			const currentIndex = remainingCycle.indexOf(currentState);
+			const nextIndex = (currentIndex + 1) % remainingCycle.length;
+			nextState = remainingCycle[nextIndex];
+			nextMark = marks[nextState] || " ";
+		}
 		// Check if next state is DONE and Tasks plugin is available
 		const tasksApi = getTasksAPI(this.plugin);
 		const canToggleWithTasksApi = nextState === "DONE" && !!tasksApi;
@@ -342,7 +378,18 @@ class TaskTextMark extends Component {
 			(state) => !excludeMarksFromCycle.includes(state),
 		);
 
-		if (remainingCycle.length === 0) return null;
+		// Only return null if:
+		// 1. No cycle is available (remainingCycle is empty)
+		// 2. AND multi-cycle mode is not enabled
+		if (
+			remainingCycle.length === 0 &&
+			!(
+				this.plugin.settings.statusCycles &&
+				this.plugin.settings.statusCycles.length > 0
+			)
+		) {
+			return null;
+		}
 
 		let currentState: string =
 			Object.keys(marks).find((state) => marks[state] === mark) ||

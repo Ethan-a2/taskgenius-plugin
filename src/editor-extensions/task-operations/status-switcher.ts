@@ -283,7 +283,7 @@ class TaskStatusWidget extends WidgetType {
 		if (!currentMarkMatch) return;
 
 		// Find the mark for the given status, checking multi-cycle config first
-		let nextMark: string = " "; // Default to space
+		let nextMark = " "; // Default to space
 
 		if (
 			this.plugin.settings.statusCycles &&
@@ -364,38 +364,81 @@ class TaskStatusWidget extends WidgetType {
 			(state) => !excludeMarksFromCycle.includes(state),
 		);
 
-		if (remainingCycle.length === 0) {
-			const editor = this.view.state.field(editorInfoField);
-			if (editor) {
-				editor?.editor?.cm?.dispatch({
-					selection: EditorSelection.range(this.to + 1, this.to + 1),
-				});
-			}
-			// If no cycle is available, trigger the default editor:toggle-checklist-status command
-			this.app.commands.executeCommandById(
-				"editor:toggle-checklist-status",
+		let nextMark: string;
+		let nextState: string;
+
+		// Try to use multi-cycle configuration first
+		if (
+			this.plugin.settings.statusCycles &&
+			this.plugin.settings.statusCycles.length > 0
+		) {
+			const nextStatusResult = getNextStatusPrimary(
+				currentMark,
+				this.plugin.settings.statusCycles,
 			);
-			return;
-		}
 
-		let currentStateIndex = -1;
-
-		for (let i = 0; i < remainingCycle.length; i++) {
-			const state = remainingCycle[i];
-			if (marks[state] === currentMark) {
-				currentStateIndex = i;
-				break;
+			if (nextStatusResult) {
+				nextState = nextStatusResult.statusName;
+				nextMark = nextStatusResult.mark;
+			} else if (remainingCycle.length > 0) {
+				// If not found in multi-cycle, fall back to first status in current cycle
+				nextState = remainingCycle[0];
+				nextMark = marks[nextState] || " ";
+			} else {
+				// No cycle available, trigger default Obsidian command
+				const editor = this.view.state.field(editorInfoField);
+				if (editor) {
+					editor?.editor?.cm?.dispatch({
+						selection: EditorSelection.range(
+							this.to + 1,
+							this.to + 1,
+						),
+					});
+				}
+				this.app.commands.executeCommandById(
+					"editor:toggle-checklist-status",
+				);
+				return;
 			}
-		}
+		} else {
+			// Fall back to legacy single-cycle logic
+			if (remainingCycle.length === 0) {
+				// No cycle available, trigger default Obsidian command
+				const editor = this.view.state.field(editorInfoField);
+				if (editor) {
+					editor?.editor?.cm?.dispatch({
+						selection: EditorSelection.range(
+							this.to + 1,
+							this.to + 1,
+						),
+					});
+				}
+				this.app.commands.executeCommandById(
+					"editor:toggle-checklist-status",
+				);
+				return;
+			}
 
-		if (currentStateIndex === -1) {
-			currentStateIndex = 0;
-		}
+			let currentStateIndex = -1;
 
-		// Calculate next state
-		const nextStateIndex = (currentStateIndex + 1) % remainingCycle.length;
-		const nextState = remainingCycle[nextStateIndex];
-		const nextMark = marks[nextState] || " ";
+			for (let i = 0; i < remainingCycle.length; i++) {
+				const state = remainingCycle[i];
+				if (marks[state] === currentMark) {
+					currentStateIndex = i;
+					break;
+				}
+			}
+
+			if (currentStateIndex === -1) {
+				currentStateIndex = 0;
+			}
+
+			// Calculate next state
+			const nextStateIndex =
+				(currentStateIndex + 1) % remainingCycle.length;
+			nextState = remainingCycle[nextStateIndex];
+			nextMark = marks[nextState] || " ";
+		}
 
 		// Replace text
 		const newText = currentText.replace(/\[(.)]/, `[${nextMark}]`);
@@ -446,9 +489,17 @@ export function taskStatusSwitcherExtension(
 					(state) => !excludeMarksFromCycle.includes(state),
 				);
 
+				// Only skip rendering if:
+				// 1. No cycle is available (remainingCycle is empty)
+				// 2. AND multi-cycle mode is not enabled
+				// 3. AND custom task marks are not enabled
 				if (
 					remainingCycle.length === 0 &&
-					!plugin.settings.enableCustomTaskMarks
+					!plugin.settings.enableCustomTaskMarks &&
+					!(
+						plugin.settings.statusCycles &&
+						plugin.settings.statusCycles.length > 0
+					)
 				)
 					return;
 

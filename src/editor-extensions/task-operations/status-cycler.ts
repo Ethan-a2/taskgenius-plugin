@@ -15,6 +15,7 @@ import {
 	getNextStatusPrimary,
 	findApplicableCycles,
 	getTaskStatusConfig,
+	getAllMarks,
 } from "@/utils/status-cycle-resolver";
 
 /**
@@ -59,9 +60,20 @@ function isValidTaskMarkerReplacement(
 		return false;
 	}
 
-	// Get valid task status marks from plugin settings
-	const { marks } = getTaskStatusConfig(plugin.settings);
-	const validMarks = Object.values(marks);
+	// Get valid task status marks from ALL enabled cycles (multi-cycle support)
+	let validMarks: string[];
+	if (
+		plugin.settings.statusCycles &&
+		plugin.settings.statusCycles.length > 0
+	) {
+		// Multi-cycle mode: get all marks from all enabled cycles
+		const allMarksSet = getAllMarks(plugin.settings.statusCycles);
+		validMarks = Array.from(allMarksSet);
+	} else {
+		// Legacy single-cycle mode
+		const { marks } = getTaskStatusConfig(plugin.settings);
+		validMarks = Object.values(marks);
+	}
 
 	// Check if both the original and inserted characters are valid task status marks
 	const isOriginalValidMark =
