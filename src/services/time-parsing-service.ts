@@ -537,6 +537,43 @@ export class TimeParsingService {
 		text: string,
 	): ParsedTimeResult | EnhancedParsedTimeResult {
 		const safeText = text ?? "";
+		const DATE_TIME_PATTERN =
+			/(\d{4}-\d{2}-\d{2})\s+(\d{1,2}):([0-5]\d)(?::([0-5]\d))?/;
+
+		const normalizeParsedDate = (
+			dateValue: Date,
+			textFragment: string,
+			timeExpr?:
+				| {
+						timeComponent?: TimeComponent;
+						rangeStart?: TimeComponent;
+						rangeEnd?: TimeComponent;
+				  }
+				| undefined,
+		): Date => {
+			const normalized = new Date(dateValue);
+			const manualMatch = textFragment.match(DATE_TIME_PATTERN);
+			const timeComponent =
+				timeExpr?.timeComponent ?? timeExpr?.rangeStart;
+
+			const hour =
+				timeComponent?.hour ??
+				(manualMatch ? Number(manualMatch[2]) : undefined);
+			const minute =
+				timeComponent?.minute ??
+				(manualMatch ? Number(manualMatch[3]) : undefined);
+			const second =
+				timeComponent?.second ??
+				(manualMatch && manualMatch[4] ? Number(manualMatch[4]) : 0);
+
+			if (hour === undefined || minute === undefined) {
+				normalized.setHours(0, 0, 0, 0);
+				return normalized;
+			}
+
+			normalized.setHours(hour, minute, second ?? 0, 0);
+			return normalized;
+		};
 
 		if (!this.config.enabled) {
 			return {
@@ -708,13 +745,21 @@ export class TimeParsingService {
 							matchingTimeExpr.rangeEnd.hour;
 					}
 
+					const normalizedDate = normalizeParsedDate(
+						date,
+						expressionText,
+						matchingTimeExpr,
+					);
+
 					const expression: EnhancedTimeExpression = {
 						text: expressionText,
-						date: date,
+						date: normalizedDate,
 						type: type,
 						index: index,
 						length: length,
-						timeComponent: matchingTimeExpr?.timeComponent,
+						timeComponent:
+							matchingTimeExpr?.timeComponent ??
+							matchingTimeExpr?.rangeStart,
 						isTimeRange: matchingTimeExpr?.isRange || false,
 						rangeStart: matchingTimeExpr?.rangeStart,
 						rangeEnd: matchingTimeExpr?.rangeEnd,
@@ -726,14 +771,16 @@ export class TimeParsingService {
 					// Set the appropriate date field based on type
 					switch (type) {
 						case "start":
-							if (!result.startDate) result.startDate = date;
+							if (!result.startDate)
+								result.startDate = normalizedDate;
 							break;
 						case "due":
-							if (!result.dueDate) result.dueDate = date;
+							if (!result.dueDate)
+								result.dueDate = normalizedDate;
 							break;
 						case "scheduled":
 							if (!result.scheduledDate)
-								result.scheduledDate = date;
+								result.scheduledDate = normalizedDate;
 							break;
 						default:
 							console.warn(

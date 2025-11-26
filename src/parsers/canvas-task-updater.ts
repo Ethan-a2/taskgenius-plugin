@@ -8,6 +8,7 @@ import { CanvasData, CanvasTextData } from "../types/canvas";
 import type TaskProgressBarPlugin from "../index";
 import { Events, emit } from "../dataflow/events/Events";
 import { CanvasParser } from "../dataflow/core/CanvasParser";
+import { formatDateSmart } from "@/utils/date/date-utils";
 
 /**
  * Result of a Canvas task update operation
@@ -22,14 +23,17 @@ export interface CanvasTaskUpdateResult {
  * Utility class for updating tasks within Canvas files
  */
 export class CanvasTaskUpdater {
-	constructor(private vault: Vault, private plugin: TaskProgressBarPlugin) {}
+	constructor(
+		private vault: Vault,
+		private plugin: TaskProgressBarPlugin,
+	) {}
 
 	/**
 	 * Update a task within a Canvas file
 	 */
 	public async updateCanvasTask(
 		task: Task<CanvasTaskMetadata>,
-		updatedTask: Task<CanvasTaskMetadata>
+		updatedTask: Task<CanvasTaskMetadata>,
 	): Promise<CanvasTaskUpdateResult> {
 		try {
 			// Get the Canvas file
@@ -76,7 +80,7 @@ export class CanvasTaskUpdater {
 			const updateResult = this.updateTaskInTextNode(
 				textNode,
 				task,
-				updatedTask
+				updatedTask,
 			);
 
 			if (!updateResult.success) {
@@ -88,7 +92,7 @@ export class CanvasTaskUpdater {
 				if (this.plugin.app?.workspace) {
 					this.plugin.app.workspace.trigger(
 						"task-genius:task-completed",
-						updatedTask
+						updatedTask,
 					);
 				}
 			}
@@ -133,7 +137,7 @@ export class CanvasTaskUpdater {
 	private updateTaskInTextNode(
 		textNode: CanvasTextData,
 		originalTask: Task,
-		updatedTask: Task
+		updatedTask: Task,
 	): CanvasTaskUpdateResult {
 		try {
 			const lines = textNode.text.split("\n");
@@ -153,7 +157,7 @@ export class CanvasTaskUpdater {
 					const updatedLine = this.updateCompleteTaskLine(
 						line,
 						originalTask,
-						updatedTask
+						updatedTask,
 					);
 					updatedLines[i] = updatedLine;
 					taskFound = true;
@@ -205,11 +209,11 @@ export class CanvasTaskUpdater {
 			// Try matching without the checkbox status (in case status changed)
 			const lineWithoutStatus = normalizedLine.replace(
 				/^[-*+]\s*\[[^\]]*\]\s*/,
-				"- [ ] "
+				"- [ ] ",
 			);
 			const originalWithoutStatus = normalizedOriginal.replace(
 				/^[-*+]\s*\[[^\]]*\]\s*/,
-				"- [ ] "
+				"- [ ] ",
 			);
 
 			if (lineWithoutStatus === originalWithoutStatus) {
@@ -280,7 +284,7 @@ export class CanvasTaskUpdater {
 	private updateCompleteTaskLine(
 		taskLine: string,
 		originalTask: Task,
-		updatedTask: Task
+		updatedTask: Task,
 	): string {
 		const useDataviewFormat =
 			this.plugin.settings.preferMetadataFormat === "dataview";
@@ -294,7 +298,7 @@ export class CanvasTaskUpdater {
 		if (updatedTask.status) {
 			updatedLine = updatedLine.replace(
 				/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
-				`$1${updatedTask.status}$2`
+				`$1${updatedTask.status}$2`,
 			);
 		}
 		// Otherwise, update completion status if it changed
@@ -302,7 +306,7 @@ export class CanvasTaskUpdater {
 			const statusMark = updatedTask.completed ? "x" : " ";
 			updatedLine = updatedLine.replace(
 				/(\s*[-*+]\s*\[)[^\]]*(\]\s*)/,
-				`$1${statusMark}$2`
+				`$1${statusMark}$2`,
 			);
 		}
 
@@ -323,7 +327,7 @@ export class CanvasTaskUpdater {
 		const metadata = this.buildMetadataArray(
 			updatedTask,
 			originalTask,
-			useDataviewFormat
+			useDataviewFormat,
 		);
 
 		// Append all metadata to the line
@@ -346,27 +350,24 @@ export class CanvasTaskUpdater {
 	private buildMetadataArray(
 		updatedTask: Task,
 		originalTask: Task,
-		useDataviewFormat: boolean
+		useDataviewFormat: boolean,
 	): string[] {
 		const metadata: string[] = [];
 
 		// Helper function to format dates
 		const formatDate = (date: number | undefined): string | undefined => {
 			if (!date) return undefined;
-			const d = new Date(date);
-			return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
-				2,
-				"0"
-			)}-${String(d.getDate()).padStart(2, "0")}`;
+			const formatted = formatDateSmart(date, { includeSeconds: false });
+			return formatted || undefined;
 		};
 
 		const formattedDueDate = formatDate(updatedTask.metadata.dueDate);
 		const formattedStartDate = formatDate(updatedTask.metadata.startDate);
 		const formattedScheduledDate = formatDate(
-			updatedTask.metadata.scheduledDate
+			updatedTask.metadata.scheduledDate,
 		);
 		const formattedCompletedDate = formatDate(
-			updatedTask.metadata.completedDate
+			updatedTask.metadata.completedDate,
 		);
 
 		// Helper function to check if project is readonly
@@ -497,7 +498,7 @@ export class CanvasTaskUpdater {
 		let dependsList: string[] | undefined;
 		if (Array.isArray(dependsValue)) {
 			dependsList = dependsValue.filter(
-				(v) => typeof v === "string" && v.trim().length > 0
+				(v) => typeof v === "string" && v.trim().length > 0,
 			);
 		} else if (typeof dependsValue === "string") {
 			dependsList = dependsValue
@@ -508,7 +509,7 @@ export class CanvasTaskUpdater {
 		if (dependsList && dependsList.length > 0) {
 			const joined = dependsList.join(", ");
 			metadata.push(
-				useDataviewFormat ? `[dependsOn:: ${joined}]` : `⛔ ${joined}`
+				useDataviewFormat ? `[dependsOn:: ${joined}]` : `⛔ ${joined}`,
 			);
 		}
 
@@ -516,7 +517,7 @@ export class CanvasTaskUpdater {
 			metadata.push(
 				useDataviewFormat
 					? `[id:: ${updatedTask.metadata.id}]`
-					: `🆔 ${updatedTask.metadata.id}`
+					: `🆔 ${updatedTask.metadata.id}`,
 			);
 		}
 
@@ -524,7 +525,7 @@ export class CanvasTaskUpdater {
 			metadata.push(
 				useDataviewFormat
 					? `[onCompletion:: ${updatedTask.metadata.onCompletion}]`
-					: `🏁 ${updatedTask.metadata.onCompletion}`
+					: `🏁 ${updatedTask.metadata.onCompletion}`,
 			);
 		}
 
@@ -533,7 +534,7 @@ export class CanvasTaskUpdater {
 			metadata.push(
 				useDataviewFormat
 					? `[repeat:: ${updatedTask.metadata.recurrence}]`
-					: `🔁 ${updatedTask.metadata.recurrence}`
+					: `🔁 ${updatedTask.metadata.recurrence}`,
 			);
 		}
 
@@ -549,7 +550,7 @@ export class CanvasTaskUpdater {
 				metadata.push(
 					useDataviewFormat
 						? `[start:: ${formattedStartDate}]`
-						: `🛫 ${formattedStartDate}`
+						: `🛫 ${formattedStartDate}`,
 				);
 			}
 		}
@@ -566,7 +567,7 @@ export class CanvasTaskUpdater {
 				metadata.push(
 					useDataviewFormat
 						? `[scheduled:: ${formattedScheduledDate}]`
-						: `⏳ ${formattedScheduledDate}`
+						: `⏳ ${formattedScheduledDate}`,
 				);
 			}
 		}
@@ -583,7 +584,7 @@ export class CanvasTaskUpdater {
 				metadata.push(
 					useDataviewFormat
 						? `[due:: ${formattedDueDate}]`
-						: `📅 ${formattedDueDate}`
+						: `📅 ${formattedDueDate}`,
 				);
 			}
 		}
@@ -593,7 +594,7 @@ export class CanvasTaskUpdater {
 			metadata.push(
 				useDataviewFormat
 					? `[completion:: ${formattedCompletedDate}]`
-					: `✅ ${formattedCompletedDate}`
+					: `✅ ${formattedCompletedDate}`,
 			);
 		}
 
@@ -606,39 +607,40 @@ export class CanvasTaskUpdater {
 	private removeExistingMetadata(line: string): string {
 		let updatedLine = line;
 
+		const dateWithOptionalTime =
+			"\\d{4}-\\d{2}-\\d{2}(?:\\s+\\d{1,2}:\\d{2}(?::\\d{2})?)?";
+
 		// Remove emoji dates
-		updatedLine = updatedLine.replace(/📅\s*\d{4}-\d{2}-\d{2}/g, "");
-		updatedLine = updatedLine.replace(/🛫\s*\d{4}-\d{2}-\d{2}/g, "");
-		updatedLine = updatedLine.replace(/⏳\s*\d{4}-\d{2}-\d{2}/g, "");
-		updatedLine = updatedLine.replace(/✅\s*\d{4}-\d{2}-\d{2}/g, "");
-		updatedLine = updatedLine.replace(/➕\s*\d{4}-\d{2}-\d{2}/g, "");
+		["📅", "📆", "✅", "➕", "⏳"].forEach((emoji) => {
+			updatedLine = updatedLine.replace(
+				new RegExp(`${emoji}\\s*${dateWithOptionalTime}`, "g"),
+				"",
+			);
+		});
 
 		// Remove dataview dates (inline field format)
-		updatedLine = updatedLine.replace(
-			/\[(?:due|🗓️)::\s*\d{4}-\d{2}-\d{2}\]/gi,
-			""
-		);
-		updatedLine = updatedLine.replace(
-			/\[(?:completion|✅)::\s*\d{4}-\d{2}-\d{2}\]/gi,
-			""
-		);
-		updatedLine = updatedLine.replace(
-			/\[(?:created|➕)::\s*\d{4}-\d{2}-\d{2}\]/gi,
-			""
-		);
-		updatedLine = updatedLine.replace(
-			/\[(?:start|🛫)::\s*\d{4}-\d{2}-\d{2}\]/gi,
-			""
-		);
-		updatedLine = updatedLine.replace(
-			/\[(?:scheduled|⏳)::\s*\d{4}-\d{2}-\d{2}\]/gi,
-			""
-		);
+		const dataviewDatePatterns = [
+			"(?:due|📅)",
+			"(?:completion|✅)",
+			"(?:created|➕)",
+			"(?:start|🛫)",
+			"(?:scheduled|⏳)",
+		];
+
+		dataviewDatePatterns.forEach((pattern) => {
+			updatedLine = updatedLine.replace(
+				new RegExp(
+					`\\[${pattern}::\\s*${dateWithOptionalTime}\\]`,
+					"gi",
+				),
+				"",
+			);
+		});
 
 		// Remove emoji priority markers
 		updatedLine = updatedLine.replace(
 			/\s+(🔼|🔽|⏫|⏬|🔺|\[#[A-C]\])/g,
-			""
+			"",
 		);
 		// Remove dataview priority
 		updatedLine = updatedLine.replace(/\[priority::\s*\w+\]/gi, "");
@@ -648,7 +650,7 @@ export class CanvasTaskUpdater {
 		// Remove dataview recurrence
 		updatedLine = updatedLine.replace(
 			/\[(?:repeat|recurrence)::\s*[^\]]+\]/gi,
-			""
+			"",
 		);
 
 		// Remove dataview project and context (using configurable prefixes)
@@ -662,17 +664,17 @@ export class CanvasTaskUpdater {
 			] || "@";
 		updatedLine = updatedLine.replace(
 			new RegExp(`\\[${projectPrefix}::\\s*[^\\]]+\\]`, "gi"),
-			""
+			"",
 		);
 		updatedLine = updatedLine.replace(
 			new RegExp(`\\[${contextPrefix}::\\s*[^\\]]+\\]`, "gi"),
-			""
+			"",
 		);
 
 		// Remove ALL existing tags to prevent duplication
 		updatedLine = updatedLine.replace(
 			/#[^\u2000-\u206F\u2E00-\u2E7F'!"#$%&()*+,.:;<=>?@^`{|}~\[\]\\\s]+/g,
-			""
+			"",
 		);
 		updatedLine = updatedLine.replace(/@[^\s@]+/g, "");
 
@@ -684,7 +686,7 @@ export class CanvasTaskUpdater {
 	 */
 	public async deleteCanvasTask(
 		task: Task<CanvasTaskMetadata>,
-		deleteChildren: boolean = false
+		deleteChildren: boolean = false,
 	): Promise<CanvasTaskUpdateResult> {
 		try {
 			// Get the Canvas file
@@ -728,7 +730,11 @@ export class CanvasTaskUpdater {
 			}
 
 			// Delete the task from the text node
-			const deleteResult = this.deleteTaskFromTextNode(textNode, task, deleteChildren);
+			const deleteResult = this.deleteTaskFromTextNode(
+				textNode,
+				task,
+				deleteChildren,
+			);
 
 			if (!deleteResult.success) {
 				return deleteResult;
@@ -757,7 +763,7 @@ export class CanvasTaskUpdater {
 		task: Task<CanvasTaskMetadata>,
 		targetFilePath: string,
 		targetNodeId?: string,
-		targetSection?: string
+		targetSection?: string,
 	): Promise<CanvasTaskUpdateResult> {
 		try {
 			// First, get the task content before deletion
@@ -775,7 +781,7 @@ export class CanvasTaskUpdater {
 				targetFilePath,
 				taskContent,
 				targetNodeId,
-				targetSection
+				targetSection,
 			);
 
 			return addResult;
@@ -795,7 +801,7 @@ export class CanvasTaskUpdater {
 		targetFilePath?: string,
 		targetNodeId?: string,
 		targetSection?: string,
-		preserveMetadata: boolean = true
+		preserveMetadata: boolean = true,
 	): Promise<CanvasTaskUpdateResult> {
 		try {
 			// Create duplicate task content
@@ -805,7 +811,7 @@ export class CanvasTaskUpdater {
 			// Reset completion status
 			duplicateContent = duplicateContent.replace(
 				/^(\s*[-*+]\s*\[)[xX\-](\])/,
-				"$1 $2"
+				"$1 $2",
 			);
 
 			if (!preserveMetadata) {
@@ -824,7 +830,7 @@ export class CanvasTaskUpdater {
 				targetFile,
 				duplicateContent,
 				targetNodeId,
-				targetSection
+				targetSection,
 			);
 
 			return addResult;
@@ -843,7 +849,7 @@ export class CanvasTaskUpdater {
 		filePath: string,
 		taskContent: string,
 		targetNodeId?: string,
-		targetSection?: string
+		targetSection?: string,
 	): Promise<CanvasTaskUpdateResult> {
 		try {
 			// Get the Canvas file
@@ -873,7 +879,7 @@ export class CanvasTaskUpdater {
 			if (targetNodeId) {
 				const existingNode = canvasData.nodes.find(
 					(node): node is CanvasTextData =>
-						node.type === "text" && node.id === targetNodeId
+						node.type === "text" && node.id === targetNodeId,
 				);
 
 				if (!existingNode) {
@@ -894,7 +900,7 @@ export class CanvasTaskUpdater {
 			const addResult = this.addTaskToTextNode(
 				targetNode,
 				taskContent,
-				targetSection
+				targetSection,
 			);
 
 			if (!addResult.success) {
@@ -923,7 +929,7 @@ export class CanvasTaskUpdater {
 	private deleteTaskFromTextNode(
 		textNode: CanvasTextData,
 		task: Task,
-		deleteChildren: boolean = false
+		deleteChildren: boolean = false,
 	): CanvasTaskUpdateResult {
 		try {
 			const lines = textNode.text.split("\n");
@@ -963,7 +969,10 @@ export class CanvasTaskUpdater {
 					const currentIndent = this.getIndentLevel(line);
 
 					// Stop if we reach a task at the same or higher level
-					if (this.isTaskLine(line) && currentIndent <= parentIndent) {
+					if (
+						this.isTaskLine(line) &&
+						currentIndent <= parentIndent
+					) {
 						break;
 					}
 
@@ -1008,7 +1017,7 @@ export class CanvasTaskUpdater {
 	private addTaskToTextNode(
 		textNode: CanvasTextData,
 		taskContent: string,
-		targetSection?: string
+		targetSection?: string,
 	): CanvasTaskUpdateResult {
 		try {
 			const lines = textNode.text.split("\n");
@@ -1017,7 +1026,7 @@ export class CanvasTaskUpdater {
 				// Find the target section and insert after it
 				const sectionIndex = this.findSectionIndex(
 					lines,
-					targetSection
+					targetSection,
 				);
 				if (sectionIndex >= 0) {
 					lines.splice(sectionIndex + 1, 0, taskContent);
@@ -1063,7 +1072,7 @@ export class CanvasTaskUpdater {
 		if (existingNodes.length > 0) {
 			// Position new node to the right of existing nodes
 			const maxX = Math.max(
-				...existingNodes.map((node) => node.x + node.width)
+				...existingNodes.map((node) => node.x + node.width),
 			);
 			x = maxX + 50;
 		}

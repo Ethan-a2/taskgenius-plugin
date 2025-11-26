@@ -2,12 +2,17 @@
 const TASK_REGEX = /^(([\s>]*)?(-|\d+\.|\*|\+)\s\[([^\[\]]{1})\])\s+(.*)$/m;
 
 // --- Emoji/Tasks Style Regexes ---
-const EMOJI_START_DATE_REGEX = /🛫\s*(\d{4}-\d{2}-\d{2})/;
-const EMOJI_COMPLETED_DATE_REGEX = /✅\s*(\d{4}-\d{2}-\d{2})/;
-const EMOJI_DUE_DATE_REGEX = /(?:📅|🗓️|📆)\s*(\d{4}-\d{2}-\d{2})/;
-const EMOJI_SCHEDULED_DATE_REGEX = /⏳\s*(\d{4}-\d{2}-\d{2})/;
-const EMOJI_CREATED_DATE_REGEX = /➕\s*(\d{4}-\d{2}-\d{2})/;
-const EMOJI_CANCELLED_DATE_REGEX = /❌\s*(\d{4}-\d{2}-\d{2})/;
+const EMOJI_START_DATE_REGEX = /🛫\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)/;
+const EMOJI_COMPLETED_DATE_REGEX =
+	/✅\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)/;
+const EMOJI_DUE_DATE_REGEX =
+	/(?:📅|🗓️|📆)\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)/;
+const EMOJI_SCHEDULED_DATE_REGEX =
+	/⏳\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)/;
+const EMOJI_CREATED_DATE_REGEX =
+	/➕\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)/;
+const EMOJI_CANCELLED_DATE_REGEX =
+	/❌\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)/;
 const EMOJI_ID_REGEX = /🆔\s*([^\s]+)/;
 const EMOJI_DEPENDS_ON_REGEX = /⛔\s*([^\s]+)/;
 const EMOJI_ON_COMPLETION_REGEX = /🏁\s*([^\s]+)/;
@@ -28,7 +33,7 @@ export type MetadataFormat = "emoji" | "dataview";
 // Function to get configurable project prefix based on format
 export const getProjectPrefix = (
 	prefix?: string,
-	format: MetadataFormat = "emoji"
+	format: MetadataFormat = "emoji",
 ): string => {
 	const projectPrefix = prefix || "project";
 	if (format === "dataview") {
@@ -42,7 +47,7 @@ export const getProjectPrefix = (
 // Special handling: emoji format always uses @, dataview format uses configurable prefix
 export const getContextPrefix = (
 	prefix?: string,
-	format: MetadataFormat = "emoji"
+	format: MetadataFormat = "emoji",
 ): string => {
 	if (format === "dataview") {
 		const contextPrefix = prefix || "context";
@@ -56,7 +61,7 @@ export const getContextPrefix = (
 // Function to get configurable area prefix based on format
 export const getAreaPrefix = (
 	prefix?: string,
-	format: MetadataFormat = "emoji"
+	format: MetadataFormat = "emoji",
 ): string => {
 	const areaPrefix = prefix || "area";
 	if (format === "dataview") {
@@ -85,13 +90,18 @@ export const createDataviewContextRegex = (prefix?: string): RegExp => {
 };
 
 // --- Dataview Style Regexes ---
-const DV_START_DATE_REGEX = /\[(?:start|🛫)::\s*(\d{4}-\d{2}-\d{2})\]/i;
+const DV_START_DATE_REGEX =
+	/\[(?:start|🛫)::\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)\]/i;
 const DV_COMPLETED_DATE_REGEX =
-	/\[(?:completion|✅)::\s*(\d{4}-\d{2}-\d{2})\]/i;
-const DV_DUE_DATE_REGEX = /\[(?:due|🗓️)::\s*(\d{4}-\d{2}-\d{2})\]/i;
-const DV_SCHEDULED_DATE_REGEX = /\[(?:scheduled|⏳)::\s*(\d{4}-\d{2}-\d{2})\]/i;
-const DV_CREATED_DATE_REGEX = /\[(?:created|➕)::\s*(\d{4}-\d{2}-\d{2})\]/i;
-const DV_CANCELLED_DATE_REGEX = /\[(?:cancelled|❌)::\s*(\d{4}-\d{2}-\d{2})\]/i;
+	/\[(?:completion|✅)::\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)\]/i;
+const DV_DUE_DATE_REGEX =
+	/\[(?:due|🗓️)::\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)\]/i;
+const DV_SCHEDULED_DATE_REGEX =
+	/\[(?:scheduled|⏳)::\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)\]/i;
+const DV_CREATED_DATE_REGEX =
+	/\[(?:created|➕)::\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)\]/i;
+const DV_CANCELLED_DATE_REGEX =
+	/\[(?:cancelled|❌)::\s*(\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?)\]/i;
 const DV_ID_REGEX = /\[(?:id|🆔)::\s*([^\]]+)\]/i;
 const DV_DEPENDS_ON_REGEX = /\[(?:dependsOn|⛔)::\s*([^\]]+)\]/i;
 const DV_ON_COMPLETION_REGEX = /\[(?:onCompletion|🏁)::\s*([^\]]+)\]/i;

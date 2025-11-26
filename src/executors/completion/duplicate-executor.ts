@@ -17,7 +17,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 	 */
 	protected async executeForCanvas(
 		context: OnCompletionExecutionContext,
-		config: OnCompletionConfig
+		config: OnCompletionConfig,
 	): Promise<OnCompletionExecutionResult> {
 		const duplicateConfig = config as OnCompletionDuplicateConfig;
 		const { task, app } = context;
@@ -34,7 +34,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 					targetFile,
 					undefined, // targetNodeId - could be enhanced later
 					duplicateConfig.targetSection,
-					duplicateConfig.preserveMetadata
+					duplicateConfig.preserveMetadata,
 				);
 
 				if (result.success) {
@@ -46,11 +46,11 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 						? ` (section: ${duplicateConfig.targetSection})`
 						: "";
 					return this.createSuccessResult(
-						`Task duplicated ${locationText}${sectionText}`
+						`Task duplicated ${locationText}${sectionText}`,
 					);
 				} else {
 					return this.createErrorResult(
-						result.error || "Failed to duplicate Canvas task"
+						result.error || "Failed to duplicate Canvas task",
 					);
 				}
 			} else {
@@ -59,7 +59,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 			}
 		} catch (error) {
 			return this.createErrorResult(
-				`Error duplicating Canvas task: ${error.message}`
+				`Error duplicating Canvas task: ${error.message}`,
 			);
 		}
 	}
@@ -69,7 +69,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 	 */
 	protected async executeForMarkdown(
 		context: OnCompletionExecutionContext,
-		config: OnCompletionConfig
+		config: OnCompletionConfig,
 	): Promise<OnCompletionExecutionResult> {
 		const duplicateConfig = config as OnCompletionDuplicateConfig;
 		const { task, app } = context;
@@ -79,7 +79,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 			const sourceFile = app.vault.getFileByPath(task.filePath);
 			if (!(sourceFile instanceof TFile)) {
 				return this.createErrorResult(
-					`Source file not found: ${task.filePath}`
+					`Source file not found: ${task.filePath}`,
 				);
 			}
 
@@ -87,18 +87,18 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 			let targetFile: TFile;
 			if (duplicateConfig.targetFile) {
 				targetFile = app.vault.getFileByPath(
-					duplicateConfig.targetFile
+					duplicateConfig.targetFile,
 				) as TFile;
 				if (!(targetFile instanceof TFile)) {
 					// Try to create the target file if it doesn't exist
 					try {
 						targetFile = await app.vault.create(
 							duplicateConfig.targetFile,
-							""
+							"",
 						);
 					} catch (error) {
 						return this.createErrorResult(
-							`Failed to create target file: ${duplicateConfig.targetFile}`
+							`Failed to create target file: ${duplicateConfig.targetFile}`,
 						);
 					}
 				}
@@ -113,7 +113,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 			// Find the task line
 			if (task.line === undefined || task.line >= sourceLines.length) {
 				return this.createErrorResult(
-					"Task line not found in source file"
+					"Task line not found in source file",
 				);
 			}
 
@@ -122,7 +122,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 			// Create duplicate task line
 			let duplicateTaskLine = this.createDuplicateTaskLine(
 				originalTaskLine,
-				duplicateConfig
+				duplicateConfig,
 			);
 
 			// If target file is different from source, add to target file
@@ -136,7 +136,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 					const sectionIndex = targetLines.findIndex(
 						(line) =>
 							line.trim().startsWith("#") &&
-							line.includes(duplicateConfig.targetSection!)
+							line.includes(duplicateConfig.targetSection!),
 					);
 
 					if (sectionIndex !== -1) {
@@ -144,14 +144,14 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 						targetLines.splice(
 							sectionIndex + 1,
 							0,
-							duplicateTaskLine
+							duplicateTaskLine,
 						);
 					} else {
 						// Section not found, create it and add the task
 						targetLines.push(
 							"",
 							`## ${duplicateConfig.targetSection}`,
-							duplicateTaskLine
+							duplicateTaskLine,
 						);
 					}
 				} else {
@@ -176,11 +176,11 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 				: "";
 
 			return this.createSuccessResult(
-				`Task duplicated ${locationText}${sectionText}`
+				`Task duplicated ${locationText}${sectionText}`,
 			);
 		} catch (error) {
 			return this.createErrorResult(
-				`Failed to duplicate task: ${error.message}`
+				`Failed to duplicate task: ${error.message}`,
 			);
 		}
 	}
@@ -190,7 +190,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 	 */
 	private async duplicateCanvasToMarkdown(
 		context: OnCompletionExecutionContext,
-		duplicateConfig: OnCompletionDuplicateConfig
+		duplicateConfig: OnCompletionDuplicateConfig,
 	): Promise<OnCompletionExecutionResult> {
 		const { task, app } = context;
 
@@ -203,14 +203,14 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 			// Reset completion status
 			taskContent = taskContent.replace(
 				/^(\s*[-*+]\s*\[)[xX\-](\])/,
-				"$1 $2"
+				"$1 $2",
 			);
 
 			if (!duplicateConfig.preserveMetadata) {
 				// Remove completion-related metadata
 				taskContent = taskContent
-					.replace(/✅\s*\d{4}-\d{2}-\d{2}/g, "") // Remove completion date
-					.replace(/⏰\s*\d{4}-\d{2}-\d{2}/g, "") // Remove scheduled date if desired
+					.replace(/✅\s*\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?/g, "") // Remove completion date
+					.replace(/⏰\s*\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?/g, "") // Remove scheduled date if desired
 					.trim();
 			}
 
@@ -227,7 +227,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 					targetFileObj = await app.vault.create(targetFile, "");
 				} catch (error) {
 					return this.createErrorResult(
-						`Failed to create target file: ${targetFile}`
+						`Failed to create target file: ${targetFile}`,
 					);
 				}
 			}
@@ -245,7 +245,7 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 							.trim()
 							.toLowerCase()
 							.includes(
-								duplicateConfig.targetSection.toLowerCase()
+								duplicateConfig.targetSection.toLowerCase(),
 							)
 					) {
 						insertPosition = i + 1;
@@ -269,30 +269,30 @@ export class DuplicateActionExecutor extends BaseActionExecutor {
 				: "";
 
 			return this.createSuccessResult(
-				`Task duplicated from Canvas ${locationText}${sectionText}`
+				`Task duplicated from Canvas ${locationText}${sectionText}`,
 			);
 		} catch (error) {
 			return this.createErrorResult(
-				`Failed to duplicate Canvas task to Markdown: ${error.message}`
+				`Failed to duplicate Canvas task to Markdown: ${error.message}`,
 			);
 		}
 	}
 
 	private createDuplicateTaskLine(
 		originalLine: string,
-		config: OnCompletionDuplicateConfig
+		config: OnCompletionDuplicateConfig,
 	): string {
 		// Reset the task to incomplete state
 		let duplicateLine = originalLine.replace(
 			/^(\s*[-*+]\s*\[)[xX\-](\])/,
-			"$1 $2"
+			"$1 $2",
 		);
 
 		if (!config.preserveMetadata) {
 			// Remove completion-related metadata
 			duplicateLine = duplicateLine
-				.replace(/✅\s*\d{4}-\d{2}-\d{2}/g, "") // Remove completion date
-				.replace(/⏰\s*\d{4}-\d{2}-\d{2}/g, "") // Remove scheduled date if desired
+				.replace(/✅\s*\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?/g, "") // Remove completion date
+				.replace(/⏰\s*\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?/g, "") // Remove scheduled date if desired
 				.trim();
 		}
 

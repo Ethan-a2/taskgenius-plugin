@@ -25,6 +25,7 @@ import { CanvasTaskUpdater } from "@/parsers/canvas-task-updater";
 import { rrulestr } from "rrule";
 import { EMOJI_TAG_REGEX, TOKEN_CONTEXT_REGEX } from "@/common/regex-define";
 import { BulkOperationResult } from "@/types/selection";
+import { formatDateSmart, isDateOnly } from "@/utils/date/date-utils";
 
 /**
  * Arguments for creating a task
@@ -96,9 +97,7 @@ export class WriteAPI {
 	}
 
 	private enqueueWrite<T>(operation: () => Promise<T>): Promise<T> {
-		const run = this.writeQueue
-			.catch(() => undefined)
-			.then(operation);
+		const run = this.writeQueue.catch(() => undefined).then(operation);
 
 		this.writeQueue = run.then(
 			() => undefined,
@@ -116,9 +115,7 @@ export class WriteAPI {
 		status?: string;
 		completed?: boolean;
 	}): Promise<{ success: boolean; task?: Task; error?: string }> {
-		return this.enqueueWrite(() =>
-			this.performUpdateTaskStatus(args),
-		);
+		return this.enqueueWrite(() => this.performUpdateTaskStatus(args));
 	}
 
 	private async performUpdateTaskStatus(args: {
@@ -537,7 +534,10 @@ export class WriteAPI {
 					// Remove existing completion markers first
 					taskLine = taskLine
 						.replace(/\s*\[completion::\s*[^\]]+\]/i, "")
-						.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/, "");
+						.replace(
+							/\s*✅\s*\d{4}-\d{2}-\d{2}(?:\s+\d{1,2}:\d{2})?/,
+							"",
+						);
 					if (md.completedDate) {
 						const dateStr =
 							typeof md.completedDate === "number"
@@ -889,7 +889,7 @@ export class WriteAPI {
 
 			// Find an enabled mapping where targetKey matches the standard key
 			const mapping = metadataMappings.find(
-				(m) => m.enabled && m.targetKey === standardKey && m.sourceKey
+				(m) => m.enabled && m.targetKey === standardKey && m.sourceKey,
 			);
 
 			// Return the source key if mapping exists, otherwise use standard key
@@ -897,8 +897,12 @@ export class WriteAPI {
 		};
 
 		// Handle status/completed updates by writing to frontmatter
-		const hasStatusUpdate = updates.status !== undefined && updates.status !== originalTask.status;
-		const hasCompletedUpdate = updates.completed !== undefined && updates.completed !== originalTask.completed;
+		const hasStatusUpdate =
+			updates.status !== undefined &&
+			updates.status !== originalTask.status;
+		const hasCompletedUpdate =
+			updates.completed !== undefined &&
+			updates.completed !== originalTask.completed;
 		const hasMetadataUpdates = updates.metadata !== undefined;
 
 		if (hasStatusUpdate || hasCompletedUpdate || hasMetadataUpdates) {
@@ -910,14 +914,22 @@ export class WriteAPI {
 						const statusMapping = fileSourceConfig?.statusMapping;
 						let statusValue = updates.status;
 
-						if (statusMapping?.enabled && statusMapping.symbolToMetadata) {
-							statusValue = statusMapping.symbolToMetadata[updates.status] || updates.status;
+						if (
+							statusMapping?.enabled &&
+							statusMapping.symbolToMetadata
+						) {
+							statusValue =
+								statusMapping.symbolToMetadata[
+									updates.status
+								] || updates.status;
 						}
 
 						// Use custom field name if mapped
-						const statusKey = getFrontmatterKey('status');
+						const statusKey = getFrontmatterKey("status");
 						(fm as any)[statusKey] = statusValue;
-						console.log(`[WriteAPI][FileSource] Updated ${statusKey}: ${originalTask.status} -> ${statusValue} (symbol: ${updates.status})`);
+						console.log(
+							`[WriteAPI][FileSource] Updated ${statusKey}: ${originalTask.status} -> ${statusValue} (symbol: ${updates.status})`,
+						);
 					}
 
 					// Handle metadata updates
@@ -926,8 +938,11 @@ export class WriteAPI {
 
 						// Priority
 						if (metadata.priority !== undefined) {
-							const priorityKey = getFrontmatterKey('priority');
-							if (metadata.priority === null || metadata.priority === 0) {
+							const priorityKey = getFrontmatterKey("priority");
+							if (
+								metadata.priority === null ||
+								metadata.priority === 0
+							) {
 								delete (fm as any)[priorityKey];
 							} else {
 								(fm as any)[priorityKey] = metadata.priority;
@@ -936,36 +951,54 @@ export class WriteAPI {
 
 						// Dates
 						if (metadata.dueDate !== undefined) {
-							const dueDateKey = getFrontmatterKey('dueDate');
+							const dueDateKey = getFrontmatterKey("dueDate");
 							if (metadata.dueDate) {
-								(fm as any)[dueDateKey] = new Date(metadata.dueDate).toISOString().split('T')[0];
+								(fm as any)[dueDateKey] = new Date(
+									metadata.dueDate,
+								)
+									.toISOString()
+									.split("T")[0];
 							} else {
 								delete (fm as any)[dueDateKey];
 							}
 						}
 
 						if (metadata.startDate !== undefined) {
-							const startDateKey = getFrontmatterKey('startDate');
+							const startDateKey = getFrontmatterKey("startDate");
 							if (metadata.startDate) {
-								(fm as any)[startDateKey] = new Date(metadata.startDate).toISOString().split('T')[0];
+								(fm as any)[startDateKey] = new Date(
+									metadata.startDate,
+								)
+									.toISOString()
+									.split("T")[0];
 							} else {
 								delete (fm as any)[startDateKey];
 							}
 						}
 
 						if (metadata.scheduledDate !== undefined) {
-							const scheduledDateKey = getFrontmatterKey('scheduledDate');
+							const scheduledDateKey =
+								getFrontmatterKey("scheduledDate");
 							if (metadata.scheduledDate) {
-								(fm as any)[scheduledDateKey] = new Date(metadata.scheduledDate).toISOString().split('T')[0];
+								(fm as any)[scheduledDateKey] = new Date(
+									metadata.scheduledDate,
+								)
+									.toISOString()
+									.split("T")[0];
 							} else {
 								delete (fm as any)[scheduledDateKey];
 							}
 						}
 
 						if (metadata.completedDate !== undefined) {
-							const completedDateKey = getFrontmatterKey('completedDate');
+							const completedDateKey =
+								getFrontmatterKey("completedDate");
 							if (metadata.completedDate) {
-								(fm as any)[completedDateKey] = new Date(metadata.completedDate).toISOString().split('T')[0];
+								(fm as any)[completedDateKey] = new Date(
+									metadata.completedDate,
+								)
+									.toISOString()
+									.split("T")[0];
 							} else {
 								delete (fm as any)[completedDateKey];
 							}
@@ -973,7 +1006,7 @@ export class WriteAPI {
 
 						// Project and context
 						if (metadata.project !== undefined) {
-							const projectKey = getFrontmatterKey('project');
+							const projectKey = getFrontmatterKey("project");
 							if (metadata.project) {
 								(fm as any)[projectKey] = metadata.project;
 							} else {
@@ -982,7 +1015,7 @@ export class WriteAPI {
 						}
 
 						if (metadata.context !== undefined) {
-							const contextKey = getFrontmatterKey('context');
+							const contextKey = getFrontmatterKey("context");
 							if (metadata.context) {
 								(fm as any)[contextKey] = metadata.context;
 							} else {
@@ -992,8 +1025,11 @@ export class WriteAPI {
 
 						// Tags
 						if (metadata.tags !== undefined) {
-							const tagsKey = getFrontmatterKey('tags');
-							if (Array.isArray(metadata.tags) && metadata.tags.length > 0) {
+							const tagsKey = getFrontmatterKey("tags");
+							if (
+								Array.isArray(metadata.tags) &&
+								metadata.tags.length > 0
+							) {
 								(fm as any)[tagsKey] = metadata.tags;
 							} else {
 								delete (fm as any)[tagsKey];
@@ -1002,7 +1038,7 @@ export class WriteAPI {
 
 						// Area
 						if (metadata.area !== undefined) {
-							const areaKey = getFrontmatterKey('area');
+							const areaKey = getFrontmatterKey("area");
 							if (metadata.area) {
 								(fm as any)[areaKey] = metadata.area;
 							} else {
@@ -1012,9 +1048,11 @@ export class WriteAPI {
 
 						// Recurrence
 						if (metadata.recurrence !== undefined) {
-							const recurrenceKey = getFrontmatterKey('recurrence');
+							const recurrenceKey =
+								getFrontmatterKey("recurrence");
 							if (metadata.recurrence) {
-								(fm as any)[recurrenceKey] = metadata.recurrence;
+								(fm as any)[recurrenceKey] =
+									metadata.recurrence;
 							} else {
 								delete (fm as any)[recurrenceKey];
 							}
@@ -1022,7 +1060,9 @@ export class WriteAPI {
 					}
 				});
 
-				console.log(`[WriteAPI][FileSource] Updated frontmatter for file-source task: ${file.path}`);
+				console.log(
+					`[WriteAPI][FileSource] Updated frontmatter for file-source task: ${file.path}`,
+				);
 			} catch (error) {
 				console.error(
 					"WriteAPI: Error updating file-source task frontmatter:",
@@ -2008,6 +2048,12 @@ export class WriteAPI {
 
 	// ===== Helper Methods =====
 
+	private formatDateForWrite(
+		timestamp: number | string | Date | undefined | null,
+	): string {
+		return formatDateSmart(timestamp, { includeSeconds: false });
+	}
+
 	/**
 	 * Generate metadata string based on format preference
 	 */
@@ -2145,38 +2191,48 @@ export class WriteAPI {
 
 		// Start Date
 		if (args.startDate) {
-			const dateStr = moment(args.startDate).format("YYYY-MM-DD");
-			metadata.push(
-				useDataviewFormat ? `[start:: ${dateStr}]` : `🛫 ${dateStr}`,
-			);
+			const dateStr = this.formatDateForWrite(args.startDate);
+			if (dateStr) {
+				metadata.push(
+					useDataviewFormat
+						? `[start:: ${dateStr}]`
+						: `🛫 ${dateStr}`,
+				);
+			}
 		}
 
 		// Scheduled Date
 		if (args.scheduledDate) {
-			const dateStr = moment(args.scheduledDate).format("YYYY-MM-DD");
-			metadata.push(
-				useDataviewFormat
-					? `[scheduled:: ${dateStr}]`
-					: `⏳ ${dateStr}`,
-			);
+			const dateStr = this.formatDateForWrite(args.scheduledDate);
+			if (dateStr) {
+				metadata.push(
+					useDataviewFormat
+						? `[scheduled:: ${dateStr}]`
+						: `⏳ ${dateStr}`,
+				);
+			}
 		}
 
 		// Due Date
 		if (args.dueDate) {
-			const dateStr = moment(args.dueDate).format("YYYY-MM-DD");
-			metadata.push(
-				useDataviewFormat ? `[due:: ${dateStr}]` : `📅 ${dateStr}`,
-			);
+			const dateStr = this.formatDateForWrite(args.dueDate);
+			if (dateStr) {
+				metadata.push(
+					useDataviewFormat ? `[due:: ${dateStr}]` : `📅 ${dateStr}`,
+				);
+			}
 		}
 
 		// Completion Date
 		if (args.completed && args.completedDate) {
-			const dateStr = moment(args.completedDate).format("YYYY-MM-DD");
-			metadata.push(
-				useDataviewFormat
-					? `[completion:: ${dateStr}]`
-					: `✅ ${dateStr}`,
-			);
+			const dateStr = this.formatDateForWrite(args.completedDate);
+			if (dateStr) {
+				metadata.push(
+					useDataviewFormat
+						? `[completion:: ${dateStr}]`
+						: `✅ ${dateStr}`,
+				);
+			}
 		}
 
 		// On Completion action
