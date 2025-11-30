@@ -25,6 +25,7 @@ import {
 import {
 	Calendar,
 	type DateAdapter,
+	DateFnsAdapter,
 	hideWeekends,
 	workingHours,
 	onlyDays,
@@ -80,171 +81,6 @@ export interface CalendarEvent extends Task {
 	allDay: boolean;
 	color?: string;
 	badge?: boolean;
-}
-
-class NormalizedDateFnsAdapter implements DateAdapter<Date> {
-	constructor(private readonly fns: typeof dateFns) {}
-
-	private normalizeFormat(formatStr?: string) {
-		if (!formatStr) return formatStr;
-		// Align legacy moment-style tokens with date-fns v4 requirements
-		return formatStr
-			.replace(/Y{2,4}/g, (token) => token.toLowerCase())
-			.replace(/D{1,2}/g, (token) => token.toLowerCase());
-	}
-
-	create(date?: string | Date) {
-		if (!date) return new Date();
-		if (date instanceof Date) return new Date(date);
-		return this.fns.parseISO(date);
-	}
-
-	parse(dateStr: string, formatStr?: string) {
-		const normalizedFormat = this.normalizeFormat(formatStr);
-		if (!normalizedFormat) {
-			return this.fns.parseISO(dateStr);
-		}
-		return this.fns.parse(dateStr, normalizedFormat, new Date());
-	}
-
-	format(date: Date, formatStr: string) {
-		return this.fns.format(
-			date,
-			this.normalizeFormat(formatStr) ?? formatStr,
-		);
-	}
-
-	year(date: Date) {
-		return this.fns.getYear(date);
-	}
-
-	month(date: Date) {
-		return this.fns.getMonth(date);
-	}
-
-	date(date: Date) {
-		return this.fns.getDate(date);
-	}
-
-	day(date: Date) {
-		return this.fns.getDay(date);
-	}
-
-	hour(date: Date) {
-		return this.fns.getHours(date);
-	}
-
-	minute(date: Date) {
-		return this.fns.getMinutes(date);
-	}
-
-	setHour(date: Date, hour: number) {
-		return this.fns.setHours(date, hour);
-	}
-
-	setMinute(date: Date, minute: number) {
-		return this.fns.setMinutes(date, minute);
-	}
-
-	add(date: Date, amount: number, unit: string) {
-		switch (unit) {
-			case "year":
-				return this.fns.addYears(date, amount);
-			case "month":
-				return this.fns.addMonths(date, amount);
-			case "week":
-				return this.fns.addWeeks(date, amount);
-			case "day":
-				return this.fns.addDays(date, amount);
-			case "hour":
-				return this.fns.addHours(date, amount);
-			case "minute":
-				return this.fns.addMinutes(date, amount);
-			default:
-				return date;
-		}
-	}
-
-	diff(date1: Date, date2: Date, unit: string) {
-		switch (unit) {
-			case "year":
-				return this.fns.differenceInYears(date1, date2);
-			case "month":
-				return this.fns.differenceInMonths(date1, date2);
-			case "week":
-				return this.fns.differenceInWeeks(date1, date2);
-			case "day":
-				return this.fns.differenceInDays(date1, date2);
-			case "hour":
-				return this.fns.differenceInHours(date1, date2);
-			case "minute":
-				return this.fns.differenceInMinutes(date1, date2);
-			default:
-				return 0;
-		}
-	}
-
-	startOf(date: Date, unit: string) {
-		switch (unit) {
-			case "year":
-				return this.fns.startOfYear(date);
-			case "month":
-				return this.fns.startOfMonth(date);
-			case "week":
-				return this.fns.startOfWeek(date);
-			case "day":
-				return this.fns.startOfDay(date);
-			case "hour":
-				return this.fns.startOfHour(date);
-			case "minute":
-				return this.fns.startOfMinute(date);
-			default:
-				return date;
-		}
-	}
-
-	endOf(date: Date, unit: string) {
-		switch (unit) {
-			case "year":
-				return this.fns.endOfYear(date);
-			case "month":
-				return this.fns.endOfMonth(date);
-			case "week":
-				return this.fns.endOfWeek(date);
-			case "day":
-				return this.fns.endOfDay(date);
-			case "hour":
-				return this.fns.endOfHour(date);
-			case "minute":
-				return this.fns.endOfMinute(date);
-			default:
-				return date;
-		}
-	}
-
-	isBefore(date1: Date, date2: Date, unit?: string) {
-		if (!unit) return this.fns.isBefore(date1, date2);
-		return this.fns.isBefore(
-			this.startOf(date1, unit),
-			this.startOf(date2, unit),
-		);
-	}
-
-	isAfter(date1: Date, date2: Date, unit?: string) {
-		if (!unit) return this.fns.isAfter(date1, date2);
-		return this.fns.isAfter(
-			this.startOf(date1, unit),
-			this.startOf(date2, unit),
-		);
-	}
-
-	isSame(date1: Date, date2: Date, unit?: string) {
-		if (!unit) return this.fns.isEqual(date1, date2);
-		return this.fns.isEqual(
-			this.startOf(date1, unit),
-			this.startOf(date2, unit),
-		);
-	}
 }
 
 /**
@@ -886,7 +722,7 @@ export class CalendarComponent extends Component {
 			},
 			// Use custom view registry for agenda/year views
 			viewRegistry: isAgendaOrYear ? this.viewRegistry : undefined,
-			dateAdapter: new NormalizedDateFnsAdapter(dateFns),
+			dateAdapter: new DateFnsAdapter(dateFns),
 			events: this.convertTasksToTGEvents(),
 			showEventCounts: cc.showEventCounts ?? true,
 			dateFormats: {
@@ -974,7 +810,7 @@ export class CalendarComponent extends Component {
 							)
 						: undefined,
 			},
-			dateAdapter: new NormalizedDateFnsAdapter(dateFns),
+			dateAdapter: new DateFnsAdapter(dateFns),
 			events: this.convertTasksToTGEvents(),
 			showEventCounts: true,
 			dateFormats: {
