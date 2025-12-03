@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.12.4](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.12.3...9.12.4) (2025-12-03)
+
+### Features
+
+* **fluent:** add drag and drop support for sidebar items ([35422e2](https://github.com/Quorafind/Obsidian-Task-Genius/commit/35422e2))
+* **kanban:** add column visibility toggle with hide/unhide functionality ([6ce9671](https://github.com/Quorafind/Obsidian-Task-Genius/commit/6ce9671))
+
 ## [9.12.3](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.12.2...9.12.3) (2025-12-01)
 
 ### Features
