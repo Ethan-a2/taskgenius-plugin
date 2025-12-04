@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.12.5](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.12.4...9.12.5) (2025-12-04)
+
+### Bug Fixes
+
+* **view:** update sidebar list based on filtered tasks in two-column views ([555782b](https://github.com/Quorafind/Obsidian-Task-Genius/commit/555782b))
+* **quick-capture:** initialize default filename when input is empty ([d2845e6](https://github.com/Quorafind/Obsidian-Task-Genius/commit/d2845e6))
+
 ## [9.12.4](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.12.3...9.12.4) (2025-12-03)
 
 ### Features
