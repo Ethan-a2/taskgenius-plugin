@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 
 
+## [9.13.0](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.12.6...9.13.0) (2025-12-09)
+
+### Features
+
+* **timer:** add timer statistics panel and Working On view ([9be6bf7](https://github.com/Quorafind/Obsidian-Task-Genius/commit/9be6bf7))
+  - Add TimerStatisticsPanel component for displaying active and completed timers
+
 ## [9.12.6](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.12.5...9.12.6) (2025-12-07)
 
 ### Features
