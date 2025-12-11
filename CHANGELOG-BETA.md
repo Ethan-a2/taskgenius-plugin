@@ -4,6 +4,8 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.14.0-beta.0](///compare/9.13.1...9.14.0-beta.0) (2025-12-11)
+
 ## [9.9.0-beta.6](https://github.com/Quorafind/Obsidian-Task-Genius/compare/9.9.0-beta.5...9.9.0-beta.6) (2025-09-27)
 
 ### Features
