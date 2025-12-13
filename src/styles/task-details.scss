@@ -246,7 +246,7 @@
 .details-edit-btn,
 .details-toggle-btn {
 	background-color: var(--interactive-normal);
-	border: 1px solid var(--background-modifier-border);
+	/* border: 1px solid var(--background-modifier-border); */
 	border-radius: 4px;
 	padding: 6px 12px;
 	color: var(--text-normal);
@@ -296,8 +296,8 @@
 	width: 100%;
 	padding: 6px 8px;
 	border-radius: 4px;
-	border: 1px solid var(--background-modifier-border);
-	background-color: var(--background-primary);
+	/* border: 1px solid var(--background-modifier-border); */
+	/* background-color: var(--background-primary); */
 }
 
 .date-input {
@@ -422,8 +422,8 @@
 }
 
 .details-edit-file-btn {
-	background-color: var(--interactive-normal);
-	border: 1px solid var(--background-modifier-border);
+	/* background-color: var(--interactive-normal); */
+	/* border: 1px solid var(--background-modifier-border); */
 	border-radius: 4px;
 	padding: 6px 12px;
 	color: var(--text-normal);

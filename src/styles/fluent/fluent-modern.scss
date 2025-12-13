@@ -11,8 +11,8 @@
 /* —— Fluent 侧边栏及其内容区域 —— */
 .fluent-modern {
 	.tg-fluent-sidebar-container {
-		background-color: var(--background-secondary);
-		border-right: unset;
+		/* background-color: var(--background-secondary); */
+		/* border-right: unset; */
 	}
 	.fluent-sidebar-content {
 		flex: 1;
@@ -110,13 +110,13 @@
 		padding: 0 20px;
 		gap: 20px;
 		background-color: var(--background-primary);
-		border-radius: var(--radius-m);
+		/* border-radius: var(--radius-m); */
 		/* border-bottom: unset; */
 		/* 其他可选边框/阴影已注释 */
 	}
 
 	.workspace-leaf-content[data-type^="fluent-task-genius-view"] .view-header {
-		background-color: var(--modern-background-secondary);
+		/* background-color: var(--modern-background-secondary); */
 		border-radius: var(--radius-m);
 		height: var(--header-height);
 		display: flex;
@@ -149,8 +149,8 @@
 		flex-shrink: 0;
 		/* background-color: var(--modern-background-secondary); */
 		order: 1;
-		padding: var(--size-4-2) 0 var(--size-4-2) var(--size-4-2);
-		border-radius: var(--radius-m);
+		/* padding: var(--size-4-2) 0 var(--size-4-2) var(--size-4-2);
+		border-radius: var(--radius-m); */
 	}
 	.task-details {
 		height: 100%;
