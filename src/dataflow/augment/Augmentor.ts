@@ -80,7 +80,7 @@ export class Augmentor {
 			this.dateInheritanceAugmentor = new DateInheritanceAugmentor(
 				options.app,
 				options.vault,
-				options.metadataCache
+				options.metadataCache,
 			);
 		}
 	}
@@ -95,7 +95,7 @@ export class Augmentor {
 				inheritFromFrontmatter?: boolean;
 			};
 			projectConfig?: ProjectConfiguration;
-		}>
+		}>,
 	): void {
 		const f = settings.fileMetadataInheritance;
 		if (f) {
@@ -114,7 +114,7 @@ export class Augmentor {
 	async merge(ctx: AugmentContext): Promise<Task[]> {
 		// First apply standard augmentation
 		let augmentedTasks = ctx.tasks.map((task) =>
-			this.augmentTask(task, ctx)
+			this.augmentTask(task, ctx),
 		);
 
 		// Then apply date inheritance for time-only expressions if available
@@ -123,12 +123,12 @@ export class Augmentor {
 				augmentedTasks =
 					await this.dateInheritanceAugmentor.augmentTasksWithDateInheritance(
 						augmentedTasks,
-						ctx.filePath
+						ctx.filePath,
 					);
 			} catch (error) {
 				console.warn(
 					"[Augmentor] Date inheritance augmentation failed:",
-					error
+					error,
 				);
 				// Continue with standard augmentation if date inheritance fails
 			}
@@ -157,7 +157,7 @@ export class Augmentor {
 	 */
 	private augmentTask(task: Task, ctx: AugmentContext): Task {
 		const originalMetadata = task.metadata || {};
-		const enhancedMetadata = {...originalMetadata};
+		const enhancedMetadata = { ...originalMetadata };
 
 		// Special handling for priority: check both task.priority and metadata.priority
 		// Priority might be at task root level (from parser) or in metadata
@@ -182,7 +182,7 @@ export class Augmentor {
 		} else if (enhancedMetadata.priority !== undefined) {
 			const originalPriority = enhancedMetadata.priority;
 			enhancedMetadata.priority = this.convertPriorityValue(
-				enhancedMetadata.priority
+				enhancedMetadata.priority,
 			);
 		}
 
@@ -211,7 +211,7 @@ export class Augmentor {
 	 */
 	private applyScalarInheritance(
 		metadata: Record<string, any>,
-		ctx: AugmentContext
+		ctx: AugmentContext,
 	): void {
 		const scalarFields = [
 			"priority",
@@ -285,7 +285,7 @@ export class Augmentor {
 	 */
 	private applyArrayInheritance(
 		metadata: Record<string, any>,
-		ctx: AugmentContext
+		ctx: AugmentContext,
 	): void {
 		const arrayFields = ["tags", "dependsOn"];
 
@@ -376,7 +376,7 @@ export class Augmentor {
 	 */
 	private applySpecialFieldRules(
 		metadata: Record<string, any>,
-		ctx: AugmentContext
+		ctx: AugmentContext,
 	): void {
 		// Status and completion: only from task level (never inherit)
 		if (this.strategy.statusCompletionSource === "task-only") {
@@ -423,8 +423,14 @@ export class Augmentor {
 	 */
 	private applyProjectReference(
 		metadata: Record<string, any>,
-		ctx: AugmentContext
+		ctx: AugmentContext,
 	): void {
+		// Helper function to get filename without extension from path
+		const getFilenameFromPath = (filePath: string): string => {
+			const fileName = filePath.split("/").pop() || filePath;
+			return fileName.replace(/\.md$/i, "");
+		};
+
 		// Derive project name from multiple sources with priority:
 		// 1) ctx.projectName (resolver-provided tgProject name)
 		// 2) ctx.projectMeta.project
@@ -434,21 +440,38 @@ export class Augmentor {
 			ctx.projectMeta.project.trim()
 				? ctx.projectMeta.project.trim()
 				: undefined;
-		const projectFromFrontmatter =
+
+		// Handle project from frontmatter - support boolean true (use filename)
+		let projectFromFrontmatter: string | undefined;
+		if (ctx.fileMeta?.project === true && ctx.filePath) {
+			// Boolean true means use filename as project name
+			projectFromFrontmatter = getFilenameFromPath(ctx.filePath);
+		} else if (
 			typeof ctx.fileMeta?.project === "string" &&
 			ctx.fileMeta.project.trim()
-				? ctx.fileMeta.project.trim()
-				: undefined;
+		) {
+			projectFromFrontmatter = ctx.fileMeta.project.trim();
+		}
 
 		// Also consider configured metadataKey in frontmatter (e.g., projectName)
 		const metadataKeyFromConfig =
 			this.projectConfig?.metadataConfig?.metadataKey;
-		const projectFromMetadataKey =
+		let projectFromMetadataKey: string | undefined;
+		if (
 			metadataKeyFromConfig &&
-			typeof ctx.fileMeta?.[metadataKeyFromConfig] === "string" &&
-			String(ctx.fileMeta?.[metadataKeyFromConfig]).trim().length > 0
-				? String(ctx.fileMeta?.[metadataKeyFromConfig]).trim()
-				: undefined;
+			ctx.fileMeta?.[metadataKeyFromConfig] !== undefined
+		) {
+			const metadataValue = ctx.fileMeta[metadataKeyFromConfig];
+			// Handle boolean true: use filename as project name
+			if (metadataValue === true && ctx.filePath) {
+				projectFromMetadataKey = getFilenameFromPath(ctx.filePath);
+			} else if (
+				typeof metadataValue === "string" &&
+				metadataValue.trim().length > 0
+			) {
+				projectFromMetadataKey = metadataValue.trim();
+			}
+		}
 
 		let effectiveProjectName =
 			ctx.projectName ||
@@ -459,8 +482,9 @@ export class Augmentor {
 		// Normalize effectiveProjectName to string: handle arrays (take first element), non-strings, etc.
 		if (effectiveProjectName) {
 			if (Array.isArray(effectiveProjectName)) {
-				effectiveProjectName = effectiveProjectName[0]?.toString() || undefined;
-			} else if (typeof effectiveProjectName !== 'string') {
+				effectiveProjectName =
+					effectiveProjectName[0]?.toString() || undefined;
+			} else if (typeof effectiveProjectName !== "string") {
 				effectiveProjectName = String(effectiveProjectName);
 			}
 		}
@@ -527,7 +551,7 @@ export class Augmentor {
 	private applySubtaskInheritance(
 		parentTask: Task,
 		parentMetadata: Record<string, any>,
-		ctx: AugmentContext
+		ctx: AugmentContext,
 	): void {
 		// This would typically involve finding child tasks and applying inheritance
 		// For now, we'll store the inheritance rules on the parent for child processing
@@ -613,14 +637,14 @@ export class Augmentor {
 	 * Update inheritance strategy
 	 */
 	updateStrategy(strategy: Partial<InheritanceStrategy>): void {
-		this.strategy = {...this.strategy, ...strategy};
+		this.strategy = { ...this.strategy, ...strategy };
 	}
 
 	/**
 	 * Get current inheritance strategy
 	 */
 	getStrategy(): InheritanceStrategy {
-		return {...this.strategy};
+		return { ...this.strategy };
 	}
 
 	/**
@@ -630,7 +654,7 @@ export class Augmentor {
 		field: string,
 		taskValue: any,
 		fileValue: any,
-		projectValue: any
+		projectValue: any,
 	): any {
 		// Handle arrays specially
 		if (

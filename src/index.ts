@@ -70,6 +70,7 @@ import { MinimalQuickCaptureSuggest } from "./components/features/quick-capture/
 import { SuggestManager } from "@/components/ui/suggest";
 import { t } from "./translations/helper";
 import { TASK_VIEW_TYPE, TaskView } from "./pages/TaskView";
+import { SettingsModal } from "./components/features/settings/SettingsModal";
 import "./styles/global.scss";
 import "./styles/setting.scss";
 import "./styles/view.scss";
@@ -465,12 +466,10 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 		await this.ensureFluentIntegration();
 
-		if (this.settings.enableView) {
-			this.registerTaskViews();
-			this.installWorkspaceGuards();
-			this.registerViewCommands();
-			this.deferIconRegistration();
-		}
+		this.registerTaskViews();
+		this.installWorkspaceGuards();
+		this.registerViewCommands();
+		this.deferIconRegistration();
 
 		const dataflowInitialized = await this.initializeDataflowOrchestrator();
 		if (!dataflowInitialized) {
@@ -601,6 +600,14 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 				const isBeta = targetVersion.toLowerCase().includes("beta");
 				this.changelogManager.openChangelog(targetVersion, isBeta);
+			},
+		});
+
+		this.addCommand({
+			id: "open-task-genius-settings-modal",
+			name: t("Open Task Genius settings"),
+			callback: () => {
+				this.openSettingsModal();
 			},
 		});
 	}
@@ -2250,5 +2257,17 @@ export default class TaskProgressBarPlugin extends Plugin {
 			"initializeTaskManagerWithVersionCheck is deprecated and should not be used",
 		);
 		return Promise.resolve();
+	}
+
+	/**
+	 * Open the settings modal
+	 * @param tabId Optional tab ID to open directly
+	 */
+	openSettingsModal(tabId?: string): void {
+		const modal = new SettingsModal(this.app, this);
+		modal.open();
+		if (tabId) {
+			modal.openTab(tabId);
+		}
 	}
 }

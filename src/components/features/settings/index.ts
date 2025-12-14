@@ -18,3 +18,4 @@ export { renderIndexSettingsTab } from "./tabs/IndexSettingsTab";
 export { createFileSourceSettings } from "./components/FileSourceSettingsSection";
 export { renderDesktopIntegrationSettingsTab } from "./tabs/DesktopIntegrationSettingsTab";
 export { renderCalendarViewSettingsTab } from "./tabs/CalendarViewSettingTab";
+export { SettingsModal } from "./SettingsModal";

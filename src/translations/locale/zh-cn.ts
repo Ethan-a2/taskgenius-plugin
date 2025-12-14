@@ -2324,6 +2324,10 @@ const translations = {
 	"Fixed File": "固定文件",
 	"Save to Inbox.md": "保存至 Inbox.md",
 	"Open Task Genius Setup": "打开 Task Genius 设置",
+	"Open Task Genius settings": "打开 Task Genius 设置",
+	"Open Task Genius settings modal": "打开 Task Genius 设置面板",
+	"Search Results": "搜索结果",
+	results: "个结果",
 	"MCP Integration": "MCP 集成",
 	Beginner: "初学者",
 	"Basic task management with essential features": "基础任务管理与必要功能",
@@ -2420,6 +2424,96 @@ const translations = {
 	"Automatically start the timer when creating a new task via quick capture (checkbox mode only)":
 		"通过快速捕获创建新任务时自动启动计时器（仅限复选框模式）",
 	"Timer started for new task": "已为新任务启动计时器",
+
+	// ============================================================
+	// 项目自动识别设置（v9.x 重新设计）
+	// ============================================================
+	// 页面标题和描述
+	"Project Auto-Detection": "项目自动识别",
+	"Configure how tasks are automatically assigned to projects based on file paths, metadata, or configuration files.":
+		"配置如何根据文件路径、元数据或配置文件自动将任务分配到项目。",
+
+	// 主开关
+	"Enable project auto-detection": "启用项目自动识别",
+	"When enabled, tasks will be automatically assigned to projects based on file location, frontmatter metadata, or project configuration files.":
+		"启用后，任务将根据文件位置、前言元数据或项目配置文件自动分配到项目。",
+
+	// 数据源一：基于路径的检测
+	"Source 1: Path-based Detection": "数据源一：基于路径的检测",
+	"Map file paths to project names. Files in matched paths will automatically belong to the specified project.":
+		"将文件路径映射到项目名称。匹配路径中的文件将自动归入指定项目。",
+	"No path mappings yet. Add a mapping to auto-detect projects from file paths.":
+		"尚无路径映射。添加映射以从文件路径自动检测项目。",
+	Rule: "规则",
+	"Enable this rule": "启用此规则",
+	"Delete this rule": "删除此规则",
+	"Add path rule": "添加路径规则",
+
+	// 数据源二：基于元数据的检测
+	"Source 2: Metadata-based Detection": "数据源二：基于元数据的检测",
+	"Read project name from file frontmatter. This has the highest priority among all detection methods.":
+		"从文件前言读取项目名称。这在所有检测方法中优先级最高。",
+	"Enable metadata detection": "启用元数据检测",
+	"Read project name from the frontmatter of each file. Example: 'project: MyProject' in YAML header.":
+		"从每个文件的前言读取项目名称。例如：YAML 头部的 'project: MyProject'。",
+	"Metadata field name": "元数据字段名",
+	"The frontmatter field name to read project from. Default is 'project'.":
+		"用于读取项目的前言字段名称。默认为 'project'。",
+
+	// 数据源三：基于配置文件的检测
+	"Source 3: Config File-based Detection": "数据源三：基于配置文件的检测",
+	"Use a special file in each folder to define project settings for all files in that folder.":
+		"在每个文件夹中使用特殊文件为该文件夹中的所有文件定义项目设置。",
+	"Enable config file detection": "启用配置文件检测",
+	"Look for project configuration files (e.g., project.md) in folders to determine project membership.":
+		"在文件夹中查找项目配置文件（如 project.md）以确定项目归属。",
+	"Name of the project configuration file to look for. The file should contain project settings in its frontmatter.":
+		"要查找的项目配置文件名称。该文件应在其前言中包含项目设置。",
+
+	// 高级功能：自定义检测方法
+	"Advanced: Custom Detection Methods": "高级：自定义检测方法",
+	"Additional methods to detect projects from tags, links, or other metadata fields.":
+		"从标签、链接或其他元数据字段检测项目的其他方法。",
+	Method: "方法",
+	"Metadata field": "元数据字段",
+	"Tag pattern": "标签模式",
+	"Link target": "链接目标",
+	"Field name (e.g., project)": "字段名（如 project）",
+	"Tag prefix (e.g., project)": "标签前缀（如 project）",
+	"Link filter (e.g., Projects/)": "链接过滤器（如 Projects/）",
+	"Delete this method": "删除此方法",
+	"Link path filter": "链接路径过滤器",
+	"Only match links containing this path": "仅匹配包含此路径的链接",
+	"Add detection method": "添加检测方法",
+
+	// 高级功能：元数据字段映射
+	"Advanced: Metadata Field Mapping": "高级：元数据字段映射",
+	"Map custom frontmatter fields to standard task properties. Useful for custom naming conventions.":
+		"将自定义前言字段映射到标准任务属性。适用于自定义命名规范。",
+	"No field mappings yet. Add a mapping to use custom frontmatter field names.":
+		"尚无字段映射。添加映射以使用自定义前言字段名。",
+	"Your field name (e.g., proj)": "你的字段名（如 proj）",
+	"→ Standard field": "→ 标准字段",
+	"Enable this mapping": "启用此映射",
+	"Delete this mapping": "删除此映射",
+	"Add field mapping": "添加字段映射",
+
+	// 后备策略：默认项目命名
+	"Fallback: Default Project Naming": "后备策略：默认项目命名",
+	"When no project is detected by the above methods, use this strategy to generate a default project name.":
+		"当上述方法都无法检测到项目时，使用此策略生成默认项目名称。",
+	"Enable fallback naming": "启用后备命名",
+	"Generate a default project name when no project is detected. If disabled, tasks without detected projects will have no project assigned.":
+		"在未检测到项目时生成默认项目名称。如果禁用，未检测到项目的任务将不会分配项目。",
+	"How to generate the default project name": "如何生成默认项目名称",
+	"Use file name": "使用文件名",
+	"Metadata field for default name": "用于默认名称的元数据字段",
+	"Frontmatter field to use as the default project name":
+		"用作默认项目名称的前言字段",
+	"e.g., category": "例如 category",
+	"Remove file extension": "移除文件扩展名",
+	"Remove the file extension (.md) from the filename when using as project name":
+		"用作项目名称时从文件名中移除文件扩展名（.md）",
 };
 
 export default translations;

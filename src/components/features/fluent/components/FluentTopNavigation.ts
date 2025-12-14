@@ -12,6 +12,7 @@ import TaskProgressBarPlugin from "@/index";
 import { Task } from "@/types/task";
 import { t } from "@/translations/helper";
 import { Events, on } from "@/dataflow/events/Events";
+import { SettingsModal } from "@/components/features/settings/SettingsModal";
 
 export type ViewMode = "list" | "kanban" | "tree" | "calendar";
 
@@ -250,9 +251,10 @@ export class TopNavigation extends Component {
 			cls: "fluent-nav-icon-button",
 		});
 		setIcon(settingsBtn, "settings");
-		this.registerDomEvent(settingsBtn, "click", () =>
-			this.onSettingsClick(),
-		);
+		this.registerDomEvent(settingsBtn, "click", () => {
+			const modal = new SettingsModal(this.plugin.app, this.plugin);
+			modal.open();
+		});
 	}
 
 	private createViewTab(

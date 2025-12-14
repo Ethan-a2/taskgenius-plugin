@@ -2491,6 +2491,10 @@ const translations = {
 	"Fixed File": "Fixed File",
 	"Save to Inbox.md": "Save to Inbox.md",
 	"Open Task Genius Setup": "Open Task Genius Setup",
+	"Open Task Genius settings": "Open Task Genius settings",
+	"Open Task Genius settings modal": "Open Task Genius settings modal",
+	"Search Results": "Search Results",
+	results: "results",
 	"MCP Integration": "MCP Integration",
 	Beginner: "Beginner",
 	"Basic task management with essential features":
@@ -2630,6 +2634,99 @@ const translations = {
 	"Automatically start the timer when creating a new task via quick capture (checkbox mode only)":
 		"Automatically start the timer when creating a new task via quick capture (checkbox mode only)",
 	"Timer started for new task": "Timer started for new task",
+
+	// ============================================================
+	// Project Auto-Detection Settings (Redesigned in v9.x)
+	// ============================================================
+	// Main heading and description
+	"Project Auto-Detection": "Project Auto-Detection",
+	"Configure how tasks are automatically assigned to projects based on file paths, metadata, or configuration files.":
+		"Configure how tasks are automatically assigned to projects based on file paths, metadata, or configuration files.",
+
+	// Main toggle
+	"Enable project auto-detection": "Enable project auto-detection",
+	"When enabled, tasks will be automatically assigned to projects based on file location, frontmatter metadata, or project configuration files.":
+		"When enabled, tasks will be automatically assigned to projects based on file location, frontmatter metadata, or project configuration files.",
+
+	// Source 1: Path-based Detection
+	"Source 1: Path-based Detection": "Source 1: Path-based Detection",
+	"Map file paths to project names. Files in matched paths will automatically belong to the specified project.":
+		"Map file paths to project names. Files in matched paths will automatically belong to the specified project.",
+	"No path mappings yet. Add a mapping to auto-detect projects from file paths.":
+		"No path mappings yet. Add a mapping to auto-detect projects from file paths.",
+	Rule: "Rule",
+	"Enable this rule": "Enable this rule",
+	"Delete this rule": "Delete this rule",
+	"Add path rule": "Add path rule",
+
+	// Source 2: Metadata-based Detection
+	"Source 2: Metadata-based Detection": "Source 2: Metadata-based Detection",
+	"Read project name from file frontmatter. This has the highest priority among all detection methods.":
+		"Read project name from file frontmatter. This has the highest priority among all detection methods.",
+	"Enable metadata detection": "Enable metadata detection",
+	"Read project name from the frontmatter of each file. Example: 'project: MyProject' in YAML header.":
+		"Read project name from the frontmatter of each file. Example: 'project: MyProject' in YAML header.",
+	"Metadata field name": "Metadata field name",
+	"The frontmatter field name to read project from. Default is 'project'.":
+		"The frontmatter field name to read project from. Default is 'project'.",
+
+	// Source 3: Config File-based Detection
+	"Source 3: Config File-based Detection":
+		"Source 3: Config File-based Detection",
+	"Use a special file in each folder to define project settings for all files in that folder.":
+		"Use a special file in each folder to define project settings for all files in that folder.",
+	"Enable config file detection": "Enable config file detection",
+	"Look for project configuration files (e.g., project.md) in folders to determine project membership.":
+		"Look for project configuration files (e.g., project.md) in folders to determine project membership.",
+	"Name of the project configuration file to look for. The file should contain project settings in its frontmatter.":
+		"Name of the project configuration file to look for. The file should contain project settings in its frontmatter.",
+
+	// Advanced: Custom Detection Methods
+	"Advanced: Custom Detection Methods": "Advanced: Custom Detection Methods",
+	"Additional methods to detect projects from tags, links, or other metadata fields.":
+		"Additional methods to detect projects from tags, links, or other metadata fields.",
+	Method: "Method",
+	"Metadata field": "Metadata field",
+	"Tag pattern": "Tag pattern",
+	"Link target": "Link target",
+	"Field name (e.g., project)": "Field name (e.g., project)",
+	"Tag prefix (e.g., project)": "Tag prefix (e.g., project)",
+	"Link filter (e.g., Projects/)": "Link filter (e.g., Projects/)",
+	"Delete this method": "Delete this method",
+	"Link path filter": "Link path filter",
+	"Only match links containing this path":
+		"Only match links containing this path",
+	"Add detection method": "Add detection method",
+
+	// Advanced: Metadata Field Mapping
+	"Advanced: Metadata Field Mapping": "Advanced: Metadata Field Mapping",
+	"Map custom frontmatter fields to standard task properties. Useful for custom naming conventions.":
+		"Map custom frontmatter fields to standard task properties. Useful for custom naming conventions.",
+	"No field mappings yet. Add a mapping to use custom frontmatter field names.":
+		"No field mappings yet. Add a mapping to use custom frontmatter field names.",
+	"Your field name (e.g., proj)": "Your field name (e.g., proj)",
+	"→ Standard field": "→ Standard field",
+	"Enable this mapping": "Enable this mapping",
+	"Delete this mapping": "Delete this mapping",
+	"Add field mapping": "Add field mapping",
+
+	// Fallback: Default Project Naming
+	"Fallback: Default Project Naming": "Fallback: Default Project Naming",
+	"When no project is detected by the above methods, use this strategy to generate a default project name.":
+		"When no project is detected by the above methods, use this strategy to generate a default project name.",
+	"Enable fallback naming": "Enable fallback naming",
+	"Generate a default project name when no project is detected. If disabled, tasks without detected projects will have no project assigned.":
+		"Generate a default project name when no project is detected. If disabled, tasks without detected projects will have no project assigned.",
+	"How to generate the default project name":
+		"How to generate the default project name",
+	"Use file name": "Use file name",
+	"Metadata field for default name": "Metadata field for default name",
+	"Frontmatter field to use as the default project name":
+		"Frontmatter field to use as the default project name",
+	"e.g., category": "e.g., category",
+	"Remove file extension": "Remove file extension",
+	"Remove the file extension (.md) from the filename when using as project name":
+		"Remove the file extension (.md) from the filename when using as project name",
 };
 
 export default translations;

@@ -125,7 +125,7 @@ export class ProjectConfigManager {
 	 * Get project configuration for a given file path
 	 */
 	async getProjectConfig(
-		filePath: string
+		filePath: string,
 	): Promise<ProjectConfigData | null> {
 		// Early return if enhanced project features are disabled
 		if (!this.enhancedProjectEnabled) {
@@ -172,7 +172,7 @@ export class ProjectConfigManager {
 		} catch (error) {
 			console.warn(
 				`Failed to read project config for ${filePath}:`,
-				error
+				error,
 			);
 			return null;
 		}
@@ -258,7 +258,7 @@ export class ProjectConfigManager {
 			if (this.matchesPathPattern(filePath, mapping.pathPattern)) {
 				// Normalize the project name to support nested paths
 				const normalizedName = this.normalizeProjectPath(
-					mapping.projectName
+					mapping.projectName,
 				);
 				return {
 					type: "path",
@@ -289,7 +289,7 @@ export class ProjectConfigManager {
 								return {
 									type: "metadata",
 									name: String(
-										fileMetadata[method.propertyKey]
+										fileMetadata[method.propertyKey],
 									),
 									source: method.propertyKey,
 									readonly: true,
@@ -301,21 +301,21 @@ export class ProjectConfigManager {
 							// Check if file has the specified tag (consider both inline and frontmatter tags)
 							{
 								const targetTag = method.propertyKey.startsWith(
-									"#"
+									"#",
 								)
 									? method.propertyKey
 									: `#${method.propertyKey}`;
 								const normalizedTarget =
 									targetTag.toLowerCase();
 								const inlineTags = (fileCache?.tags || []).map(
-									(tc) => tc.tag
+									(tc) => tc.tag,
 								);
 								const fmTagsRaw = fileCache?.frontmatter?.tags;
 								const fmTagsArr = Array.isArray(fmTagsRaw)
 									? fmTagsRaw
 									: fmTagsRaw !== undefined
-									? [fmTagsRaw]
-									: [];
+										? [fmTagsRaw]
+										: [];
 								const fmTagsNorm = fmTagsArr.map((t: any) => {
 									const s = String(t || "");
 									return s.startsWith("#") ? s : `#${s}`;
@@ -326,7 +326,7 @@ export class ProjectConfigManager {
 								].map((t) => String(t || "").toLowerCase());
 								// For file-level detection: require exact match; do NOT treat hierarchical '#project/xxx' as match unless configured exactly
 								const hasTag = allTags.some(
-									(t) => t === normalizedTarget
+									(t) => t === normalizedTarget,
 								);
 
 								if (hasTag) {
@@ -352,7 +352,7 @@ export class ProjectConfigManager {
 										filePath.split("/").pop() || filePath;
 									const nameWithoutExt = fileName.replace(
 										/\.md$/i,
-										""
+										"",
 									);
 									return {
 										type: "metadata",
@@ -374,7 +374,7 @@ export class ProjectConfigManager {
 									if (method.linkFilter) {
 										if (
 											linkedNote.includes(
-												method.linkFilter
+												method.linkFilter,
 											)
 										) {
 											// First try to use title or name from frontmatter as project name
@@ -382,7 +382,7 @@ export class ProjectConfigManager {
 												return {
 													type: "metadata",
 													name: String(
-														fileMetadata.title
+														fileMetadata.title,
 													),
 													source: "title (via link)",
 													readonly: true,
@@ -392,7 +392,7 @@ export class ProjectConfigManager {
 												return {
 													type: "metadata",
 													name: String(
-														fileMetadata.name
+														fileMetadata.name,
 													),
 													source: "name (via link)",
 													readonly: true,
@@ -418,12 +418,14 @@ export class ProjectConfigManager {
 											fileMetadata[method.propertyKey]
 										) {
 											const propValue = String(
-												fileMetadata[method.propertyKey]
+												fileMetadata[
+													method.propertyKey
+												],
 											);
 											// Check if this link is mentioned in the property
 											if (
 												propValue.includes(
-													`[[${linkedNote}]]`
+													`[[${linkedNote}]]`,
 												)
 											) {
 												// First try to use title or name from frontmatter as project name
@@ -431,7 +433,7 @@ export class ProjectConfigManager {
 													return {
 														type: "metadata",
 														name: String(
-															fileMetadata.title
+															fileMetadata.title,
 														),
 														source: "title (via link)",
 														readonly: true,
@@ -441,7 +443,7 @@ export class ProjectConfigManager {
 													return {
 														type: "metadata",
 														name: String(
-															fileMetadata.name
+															fileMetadata.name,
 														),
 														source: "name (via link)",
 														readonly: true,
@@ -454,7 +456,7 @@ export class ProjectConfigManager {
 												const nameWithoutExt =
 													fileName.replace(
 														/\.md$/i,
-														""
+														"",
 													);
 												return {
 													type: "metadata",
@@ -478,6 +480,20 @@ export class ProjectConfigManager {
 			const fileMetadata = this.getFileMetadata(filePath);
 			if (fileMetadata && fileMetadata[this.metadataKey]) {
 				const projectFromMetadata = fileMetadata[this.metadataKey];
+
+				// Handle boolean true: use filename as project name
+				if (projectFromMetadata === true) {
+					const fileName = filePath.split("/").pop() || filePath;
+					const nameWithoutExt = fileName.replace(/\.md$/i, "");
+					return {
+						type: "metadata",
+						name: nameWithoutExt,
+						source: `${this.metadataKey} (filename)`,
+						readonly: true,
+					};
+				}
+
+				// Handle string values
 				if (
 					typeof projectFromMetadata === "string" &&
 					projectFromMetadata.trim()
@@ -583,7 +599,7 @@ export class ProjectConfigManager {
 		} catch (error) {
 			console.warn(
 				`Failed to get enhanced metadata for ${filePath}:`,
-				error
+				error,
 			);
 			return {};
 		}
@@ -621,7 +637,7 @@ export class ProjectConfigManager {
 	 * Find project configuration file for a given file path
 	 */
 	private async findProjectConfigFile(
-		filePath: string
+		filePath: string,
 	): Promise<TFile | null> {
 		// Early return if enhanced project features are disabled
 		if (!this.enhancedProjectEnabled) {
@@ -641,7 +657,7 @@ export class ProjectConfigManager {
 				(child: any) =>
 					child &&
 					child.name === this.configFileName &&
-					"stat" in child // Check if it's a file-like object
+					"stat" in child, // Check if it's a file-like object
 			) as TFile | undefined;
 
 			if (configFile) {
@@ -681,7 +697,7 @@ export class ProjectConfigManager {
 				(child: any) =>
 					child &&
 					child.name === this.configFileName &&
-					"stat" in child // Check if it's a file-like object
+					"stat" in child, // Check if it's a file-like object
 			) as TFile | undefined;
 
 			if (configFile) {
@@ -763,7 +779,7 @@ export class ProjectConfigManager {
 	 * Apply metadata mappings to transform source metadata keys to target keys
 	 */
 	private applyMetadataMappings(
-		metadata: Record<string, any>
+		metadata: Record<string, any>,
 	): Record<string, any> {
 		const result = { ...metadata };
 
@@ -775,7 +791,7 @@ export class ProjectConfigManager {
 				// Apply intelligent type conversion for common field types
 				result[mapping.targetKey] = this.convertMetadataValue(
 					mapping.targetKey,
-					sourceValue
+					sourceValue,
 				);
 			}
 		}
@@ -811,12 +827,12 @@ export class ProjectConfigManager {
 
 		// Check if it's a date field
 		const isDateField = dateFieldPatterns.some((pattern) =>
-			targetKey.toLowerCase().includes(pattern.toLowerCase())
+			targetKey.toLowerCase().includes(pattern.toLowerCase()),
 		);
 
 		// Check if it's a priority field
 		const isPriorityField = priorityFieldPatterns.some((pattern) =>
-			targetKey.toLowerCase().includes(pattern.toLowerCase())
+			targetKey.toLowerCase().includes(pattern.toLowerCase()),
 		);
 
 		if (isDateField && typeof value === "string") {
@@ -862,7 +878,7 @@ export class ProjectConfigManager {
 	 * Public method to apply metadata mappings to any metadata object
 	 */
 	public applyMappingsToMetadata(
-		metadata: Record<string, any>
+		metadata: Record<string, any>,
 	): Record<string, any> {
 		return this.applyMetadataMappings(metadata);
 	}
@@ -898,7 +914,7 @@ export class ProjectConfigManager {
 					const projectRootIndex = pathParts.findIndex(
 						(part) =>
 							part.toLowerCase() === "projects" ||
-							part.toLowerCase() === "project"
+							part.toLowerCase() === "project",
 					);
 
 					if (
@@ -908,7 +924,7 @@ export class ProjectConfigManager {
 						// Build project path from folders after the project root
 						const projectParts = pathParts.slice(
 							projectRootIndex + 1,
-							pathParts.length - 1
+							pathParts.length - 1,
 						);
 						return projectParts.join("/");
 					}
@@ -1008,7 +1024,7 @@ export class ProjectConfigManager {
 	 * Get project config data for a file (alias for getProjectConfig for compatibility)
 	 */
 	async getProjectConfigData(
-		filePath: string
+		filePath: string,
 	): Promise<ProjectConfigData | null> {
 		return await this.getProjectConfig(filePath);
 	}
@@ -1039,13 +1055,13 @@ export class ProjectConfigManager {
 			.reduce((sum, size) => sum + size, 0);
 
 		const fileMetadataCacheSize = Array.from(
-			this.fileMetadataCache.values()
+			this.fileMetadataCache.values(),
 		)
 			.map((metadata) => JSON.stringify(metadata).length)
 			.reduce((sum, size) => sum + size, 0);
 
 		const enhancedMetadataCacheSize = Array.from(
-			this.enhancedMetadataCache.values()
+			this.enhancedMetadataCache.values(),
 		)
 			.map((metadata) => JSON.stringify(metadata).length)
 			.reduce((sum, size) => sum + size, 0);

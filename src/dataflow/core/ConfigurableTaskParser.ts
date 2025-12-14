@@ -1572,6 +1572,19 @@ export class MarkdownTaskParser {
 			const metadataKey = config.metadataConfig.metadataKey || "project";
 			const projectFromMetadata = this.fileMetadata[metadataKey];
 
+			// Handle boolean true: use filename as project name
+			if (projectFromMetadata === true) {
+				const fileName = filePath.split("/").pop() || filePath;
+				const nameWithoutExt = fileName.replace(/\.md$/i, "");
+				return {
+					type: "metadata",
+					name: nameWithoutExt,
+					source: `${metadataKey} (filename)`,
+					readonly: true,
+				};
+			}
+
+			// Handle string values
 			if (
 				projectFromMetadata &&
 				typeof projectFromMetadata === "string"

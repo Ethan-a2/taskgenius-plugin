@@ -21,7 +21,7 @@ class MockTFile {
 	constructor(
 		public path: string,
 		public name: string,
-		public parent: MockTFolder | null = null
+		public parent: MockTFolder | null = null,
 	) {
 		this.stat = { mtime: Date.now() };
 	}
@@ -33,7 +33,7 @@ class MockTFolder {
 		public path: string,
 		public name: string,
 		public parent: MockTFolder | null = null,
-		public children: (MockTFile | MockTFolder)[] = []
+		public children: (MockTFile | MockTFolder)[] = [],
 	) {}
 }
 
@@ -55,6 +55,10 @@ class MockVault {
 	}
 
 	getAbstractFileByPath(path: string): MockTFile | null {
+		return this.files.get(path) || null;
+	}
+
+	getFileByPath(path: string): MockTFile | null {
 		return this.files.get(path) || null;
 	}
 
@@ -129,7 +133,7 @@ describe("ProjectConfigManager", () => {
 			manager.updateOptions({ pathMappings });
 
 			const workProject = await manager.determineTgProject(
-				"Projects/Work/task.md"
+				"Projects/Work/task.md",
 			);
 			expect(workProject).toEqual({
 				type: "path",
@@ -138,9 +142,8 @@ describe("ProjectConfigManager", () => {
 				readonly: true,
 			});
 
-			const personalProject = await manager.determineTgProject(
-				"Personal/notes.md"
-			);
+			const personalProject =
+				await manager.determineTgProject("Personal/notes.md");
 			expect(personalProject).toEqual({
 				type: "path",
 				name: "Personal Project",
@@ -161,7 +164,7 @@ describe("ProjectConfigManager", () => {
 			manager.updateOptions({ pathMappings });
 
 			const project = await manager.determineTgProject(
-				"Projects/Work/task.md"
+				"Projects/Work/task.md",
 			);
 			expect(project).toBeUndefined();
 		});
@@ -178,7 +181,7 @@ describe("ProjectConfigManager", () => {
 			manager.updateOptions({ pathMappings });
 
 			const project = await manager.determineTgProject(
-				"Projects/SomeProject/task.md"
+				"Projects/SomeProject/task.md",
 			);
 			expect(project).toEqual({
 				type: "path",
@@ -223,6 +226,41 @@ describe("ProjectConfigManager", () => {
 			const project = await manager.determineTgProject("nonexistent.md");
 			expect(project).toBeUndefined();
 		});
+
+		it("should use filename as project name when project: true (boolean)", async () => {
+			vault.addFile("Projects/MyAwesomeProject.md", "# My Project");
+			metadataCache.setFileMetadata("Projects/MyAwesomeProject.md", {
+				project: true,
+			});
+
+			const project = await manager.determineTgProject(
+				"Projects/MyAwesomeProject.md",
+			);
+			expect(project).toEqual({
+				type: "metadata",
+				name: "MyAwesomeProject",
+				source: "project (filename)",
+				readonly: true,
+			});
+		});
+
+		it("should use filename when custom metadata key has boolean true", async () => {
+			manager.updateOptions({ metadataKey: "isProject" });
+			vault.addFile("Tasks/ImportantTask.md", "# Task");
+			metadataCache.setFileMetadata("Tasks/ImportantTask.md", {
+				isProject: true,
+			});
+
+			const project = await manager.determineTgProject(
+				"Tasks/ImportantTask.md",
+			);
+			expect(project).toEqual({
+				type: "metadata",
+				name: "ImportantTask",
+				source: "isProject (filename)",
+				readonly: true,
+			});
+		});
 	});
 
 	describe("Config file-based project detection", () => {
@@ -235,14 +273,14 @@ project: Config Project
 ---
 
 # Project Configuration
-`
+`,
 			);
 
 			// Mock the folder structure
 			const file = vault.addFile("Projects/task.md", "- [ ] Test task");
 			const folder = vault.addFolder("Projects");
 			const configFile = vault.getAbstractFileByPath(
-				"Projects/project.md"
+				"Projects/project.md",
 			);
 			if (configFile) {
 				folder.children.push(configFile);
@@ -254,9 +292,8 @@ project: Config Project
 				project: "Config Project",
 			});
 
-			const project = await manager.determineTgProject(
-				"Projects/task.md"
-			);
+			const project =
+				await manager.determineTgProject("Projects/task.md");
 			expect(project).toEqual({
 				type: "config",
 				name: "Config Project",
@@ -278,16 +315,15 @@ description: A project defined in content
 			const file = vault.addFile("Projects/task.md", "- [ ] Test task");
 			const folder = vault.addFolder("Projects");
 			const configFile = vault.getAbstractFileByPath(
-				"Projects/project.md"
+				"Projects/project.md",
 			);
 			if (configFile) {
 				folder.children.push(configFile);
 				file.parent = folder;
 			}
 
-			const project = await manager.determineTgProject(
-				"Projects/task.md"
-			);
+			const project =
+				await manager.determineTgProject("Projects/task.md");
 			expect(project).toEqual({
 				type: "config",
 				name: "Content Project",
@@ -321,9 +357,8 @@ description: A project defined in content
 				other: "value",
 			});
 
-			const enhancedMetadata = await manager.getEnhancedMetadata(
-				"test.md"
-			);
+			const enhancedMetadata =
+				await manager.getEnhancedMetadata("test.md");
 			expect(enhancedMetadata).toEqual({
 				proj: "Mapped Project",
 				due_date: "2024-01-01",
@@ -349,9 +384,8 @@ description: A project defined in content
 				proj: "Should Not Map",
 			});
 
-			const enhancedMetadata = await manager.getEnhancedMetadata(
-				"test.md"
-			);
+			const enhancedMetadata =
+				await manager.getEnhancedMetadata("test.md");
 			expect(enhancedMetadata).toEqual({
 				proj: "Should Not Map",
 			});
@@ -370,7 +404,7 @@ description: A project defined in content
 			manager.updateOptions({ defaultProjectNaming });
 
 			const project = await manager.determineTgProject(
-				"Projects/my-document.md"
+				"Projects/my-document.md",
 			);
 			expect(project).toEqual({
 				type: "default",
@@ -390,7 +424,7 @@ description: A project defined in content
 			manager.updateOptions({ defaultProjectNaming });
 
 			const project = await manager.determineTgProject(
-				"Projects/my-document.md"
+				"Projects/my-document.md",
 			);
 			expect(project).toEqual({
 				type: "default",
@@ -409,7 +443,7 @@ description: A project defined in content
 			manager.updateOptions({ defaultProjectNaming });
 
 			const project = await manager.determineTgProject(
-				"Projects/WorkFolder/task.md"
+				"Projects/WorkFolder/task.md",
 			);
 			expect(project).toEqual({
 				type: "default",
@@ -433,9 +467,8 @@ description: A project defined in content
 
 			manager.updateOptions({ defaultProjectNaming });
 
-			const project = await manager.determineTgProject(
-				"anywhere/task.md"
-			);
+			const project =
+				await manager.determineTgProject("anywhere/task.md");
 			expect(project).toEqual({
 				type: "default",
 				name: "Global Project",
@@ -454,7 +487,7 @@ description: A project defined in content
 			manager.updateOptions({ defaultProjectNaming });
 
 			const project = await manager.determineTgProject(
-				"Projects/my-document.md"
+				"Projects/my-document.md",
 			);
 			expect(project).toBeUndefined();
 		});
@@ -477,9 +510,8 @@ description: A project defined in content
 				project: "Metadata Project",
 			});
 
-			const project = await manager.determineTgProject(
-				"Projects/task.md"
-			);
+			const project =
+				await manager.determineTgProject("Projects/task.md");
 			expect(project).toEqual({
 				type: "path",
 				name: "Path Project",
@@ -499,16 +531,15 @@ description: A project defined in content
 			const file = vault.getAbstractFileByPath("Projects/task.md");
 			const folder = vault.addFolder("Projects");
 			const configFile = vault.getAbstractFileByPath(
-				"Projects/project.md"
+				"Projects/project.md",
 			);
 			if (file && configFile) {
 				folder.children.push(configFile);
 				file.parent = folder;
 			}
 
-			const project = await manager.determineTgProject(
-				"Projects/task.md"
-			);
+			const project =
+				await manager.determineTgProject("Projects/task.md");
 			expect(project).toEqual({
 				type: "metadata",
 				name: "Metadata Project",
@@ -533,16 +564,15 @@ description: A project defined in content
 			const file = vault.getAbstractFileByPath("Projects/task.md");
 			const folder = vault.addFolder("Projects");
 			const configFile = vault.getAbstractFileByPath(
-				"Projects/project.md"
+				"Projects/project.md",
 			);
 			if (file && configFile) {
 				folder.children.push(configFile);
 				file.parent = folder;
 			}
 
-			const project = await manager.determineTgProject(
-				"Projects/task.md"
-			);
+			const project =
+				await manager.determineTgProject("Projects/task.md");
 			expect(project).toEqual({
 				type: "config",
 				name: "Config Project",
@@ -561,7 +591,7 @@ description: A project defined in content
 			const file = vault.getAbstractFileByPath("Projects/task.md");
 			const folder = vault.addFolder("Projects");
 			const configFile = vault.getAbstractFileByPath(
-				"Projects/project.md"
+				"Projects/project.md",
 			);
 			if (file && configFile) {
 				folder.children.push(configFile);
@@ -569,14 +599,12 @@ description: A project defined in content
 			}
 
 			// First call should read and cache
-			const project1 = await manager.determineTgProject(
-				"Projects/task.md"
-			);
+			const project1 =
+				await manager.determineTgProject("Projects/task.md");
 
 			// Second call should use cache
-			const project2 = await manager.determineTgProject(
-				"Projects/task.md"
-			);
+			const project2 =
+				await manager.determineTgProject("Projects/task.md");
 
 			expect(project1).toEqual(project2);
 			expect(project1?.name).toBe("Cached Project");
@@ -621,7 +649,7 @@ description: A project defined in content
 		it("should handle malformed config files gracefully", async () => {
 			vault.addFile(
 				"Projects/project.md",
-				"Invalid content without proper format"
+				"Invalid content without proper format",
 			);
 			vault.addFile("Projects/task.md", "# Test file");
 
@@ -629,16 +657,15 @@ description: A project defined in content
 			const file = vault.getAbstractFileByPath("Projects/task.md");
 			const folder = vault.addFolder("Projects");
 			const configFile = vault.getAbstractFileByPath(
-				"Projects/project.md"
+				"Projects/project.md",
 			);
 			if (file && configFile) {
 				folder.children.push(configFile);
 				file.parent = folder;
 			}
 
-			const project = await manager.determineTgProject(
-				"Projects/task.md"
-			);
+			const project =
+				await manager.determineTgProject("Projects/task.md");
 			expect(project).toBeUndefined();
 		});
 	});
@@ -659,14 +686,14 @@ description: A project defined in content
 
 			// All methods should return null/empty when disabled
 			expect(
-				await disabledManager.getProjectConfig("test.md")
+				await disabledManager.getProjectConfig("test.md"),
 			).toBeNull();
 			expect(disabledManager.getFileMetadata("test.md")).toBeNull();
 			expect(
-				await disabledManager.determineTgProject("test.md")
+				await disabledManager.determineTgProject("test.md"),
 			).toBeUndefined();
 			expect(
-				await disabledManager.getEnhancedMetadata("test.md")
+				await disabledManager.getEnhancedMetadata("test.md"),
 			).toEqual({});
 			expect(disabledManager.isEnhancedProjectEnabled()).toBe(false);
 		});
@@ -727,12 +754,12 @@ description: A project defined in content
 			// All metadata-related methods should return null/empty when disabled
 			expect(disabledManager.getFileMetadata("test.md")).toBeNull();
 			expect(
-				await disabledManager.getEnhancedMetadata("test.md")
+				await disabledManager.getEnhancedMetadata("test.md"),
 			).toEqual({});
 
 			// Even if frontmatter exists, it should not be accessible through disabled manager
 			expect(
-				await disabledManager.determineTgProject("test.md")
+				await disabledManager.determineTgProject("test.md"),
 			).toBeUndefined();
 		});
 	});
