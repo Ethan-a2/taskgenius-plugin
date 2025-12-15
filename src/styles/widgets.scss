@@ -1,0 +1,906 @@
+.tg-widget-view {
+	padding: 0;
+}
+
+// ============================================
+// Embedded Widget (CodeBlock) Styles
+// ============================================
+
+.tg-embedded-widget {
+	margin: 8px 0;
+	border: 1px solid var(--background-modifier-border);
+	border-radius: 8px;
+	overflow: hidden;
+	background: var(--background-primary);
+}
+
+.tg-widget-renderer {
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+.tg-widget-renderer-header {
+	display: flex;
+	align-items: center;
+	padding: 8px 12px;
+	background: var(--background-secondary);
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tg-widget-renderer-title {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-normal);
+}
+
+.tg-widget-renderer-body {
+	padding: 10px;
+	overflow: auto;
+	flex: 1;
+	min-height: 0;
+}
+
+// Layout mode classes for renderer
+.tg-renderer-compact,
+.tg-renderer-narrow,
+.tg-renderer-medium,
+.tg-renderer-wide {
+	// Base styles - can be extended per widget
+}
+
+// Placeholder for upcoming widgets
+.tg-embedded-widget-placeholder {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 100px;
+	background: var(--background-secondary);
+}
+
+.tg-embedded-widget-placeholder-text {
+	font-size: 13px;
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+// Error state
+.tg-embedded-widget-error {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 12px 16px;
+	background: var(--background-modifier-error);
+	border: 1px solid var(--background-modifier-error-hover);
+	border-radius: 6px;
+	margin: 8px 0;
+}
+
+.tg-embedded-widget-error-icon {
+	font-size: 16px;
+}
+
+.tg-embedded-widget-error-message {
+	font-size: 12px;
+	color: var(--text-error);
+}
+
+// Embedded Tasks Widget adjustments
+.tg-embedded-widget {
+	.tg-tasks-container {
+		max-height: none;
+	}
+
+	.tg-tasks-group-header {
+		padding: 4px 6px;
+	}
+
+	.tg-tasks-item {
+		padding: 4px 6px;
+	}
+}
+
+// Embedded Kanban Widget adjustments
+.tg-embedded-widget {
+	.tg-kanban-container {
+		min-height: 150px;
+	}
+
+	.tg-kanban-board {
+		min-height: 150px;
+	}
+
+	.tg-kanban-column {
+		min-width: 140px;
+		max-width: 220px;
+	}
+
+	// In embedded mode, default to read-only cards (no drag cursor)
+	.tg-kanban-card {
+		cursor: default;
+
+		&:active {
+			cursor: default;
+		}
+	}
+}
+
+.tg-widget-shell {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+}
+
+.tg-widget-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 6px 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tg-widget-title {
+	font-size: 12px;
+	font-weight: 600;
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tg-widget-actions {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.tg-widget-link-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border-radius: 6px;
+	color: var(--text-muted);
+}
+
+.tg-widget-link-toggle:hover {
+	background: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.tg-widget-body {
+	padding: 10px;
+	overflow: auto;
+	min-height: 0;
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+}
+
+.tg-widget-section {
+	margin-bottom: 10px;
+}
+
+.tg-widget-section-title {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--text-muted);
+	margin-bottom: 6px;
+}
+
+.tg-widget-section-empty {
+	font-size: 12px;
+	color: var(--text-faint);
+	padding: 4px 0;
+}
+
+.tg-widget-task-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.tg-widget-task-row {
+	display: grid;
+	grid-template-columns: 16px 1fr;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 6px;
+	border-radius: 6px;
+}
+
+.tg-widget-task-row:hover {
+	background: var(--background-modifier-hover);
+}
+
+.tg-widget-task-title {
+	font-size: 12px;
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	cursor: pointer;
+}
+
+.tg-widget-empty {
+	font-size: 12px;
+	color: var(--text-faint);
+	padding: 6px 0;
+}
+
+// ============================================
+// Calendar Widget
+// ============================================
+
+.tg-widget-calendar {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	gap: 8px;
+}
+
+.tg-widget-calendar-full,
+.tg-widget-calendar-mini,
+.tg-widget-calendar-mini-tasks {
+	min-height: 0;
+}
+
+// Full calendar (for wider layouts)
+.tg-widget-calendar-full {
+	flex: 1;
+	overflow: auto;
+
+	.full-calendar-container {
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.calendar-header {
+		flex-shrink: 0;
+	}
+
+	.calendar-view-container {
+		flex: 1;
+		min-height: 0;
+		overflow: auto;
+	}
+}
+
+// Mini calendar container (for compact/narrow layouts)
+.tg-widget-calendar-mini {
+	.mini-calendar-container {
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		padding-bottom: 8px;
+	}
+
+	.calendar-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 6px 8px;
+		margin-bottom: 6px;
+	}
+
+	.calendar-title {
+		font-weight: 600;
+		font-size: 12px;
+		display: flex;
+		gap: 4px;
+	}
+
+	.calendar-month {
+		color: var(--text-normal);
+	}
+
+	.calendar-year {
+		color: var(--text-muted);
+	}
+
+	.calendar-nav {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.calendar-nav-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 22px;
+		height: 22px;
+		border-radius: 4px;
+		background: transparent;
+		cursor: pointer;
+		color: var(--text-muted);
+		transition: all 0.15s ease;
+
+		&:hover {
+			background: var(--background-modifier-hover);
+			color: var(--text-normal);
+		}
+	}
+
+	.calendar-today-btn {
+		padding: 2px 8px;
+		border-radius: 4px;
+		background: transparent;
+		cursor: pointer;
+		font-size: 10px;
+		color: var(--text-muted);
+		transition: all 0.15s ease;
+
+		&:hover {
+			background: var(--background-modifier-hover);
+			color: var(--text-normal);
+		}
+	}
+
+	.calendar-grid {
+		display: grid;
+		grid-template-columns: repeat(7, 1fr);
+		gap: 1px;
+		padding: 0 4px;
+	}
+
+	.calendar-day-header {
+		text-align: center;
+		font-size: 10px;
+		color: var(--text-muted);
+		padding: 2px 0;
+		border-bottom: 1px solid var(--background-modifier-border);
+		margin-bottom: 2px;
+
+		&.calendar-weekend {
+			color: var(--text-accent);
+		}
+	}
+
+	.calendar-day {
+		border-radius: 4px;
+		padding: 1px;
+		cursor: pointer;
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		transition: background 0.15s ease;
+		min-height: 28px;
+
+		&:hover {
+			background: var(--background-modifier-hover);
+		}
+
+		&.selected {
+			background: var(--background-modifier-border-hover);
+		}
+
+		&.today {
+			background: var(--interactive-accent);
+			color: var(--text-on-accent);
+
+			.calendar-day-number {
+				color: inherit;
+			}
+		}
+
+		&.past-due {
+			.calendar-day-number {
+				color: var(--color-red);
+			}
+		}
+
+		&.other-month {
+			opacity: 0.4;
+		}
+	}
+
+	.calendar-day-number {
+		text-align: center;
+		font-size: 11px;
+		font-weight: 500;
+		padding: 1px;
+		color: var(--text-normal);
+	}
+
+	.calendar-day-count {
+		background: var(--background-modifier-border);
+		color: var(--text-normal);
+		border-radius: 6px;
+		font-size: 9px;
+		padding: 0 4px;
+		margin-top: 1px;
+		text-align: center;
+		min-width: 14px;
+
+		&.has-priority {
+			background: var(--interactive-accent);
+			color: var(--text-on-accent);
+		}
+	}
+}
+
+// Mini tasks list
+.tg-widget-calendar-mini-tasks {
+	flex: 1;
+	overflow: auto;
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: 8px;
+}
+
+// Default visibility (wide/medium - show full calendar)
+.tg-widget-calendar-full {
+	display: flex;
+}
+
+.tg-widget-calendar-mini,
+.tg-widget-calendar-mini-tasks {
+	display: none;
+}
+
+// Layout mode visibility - compact/narrow shows mini calendar
+.tg-widget-shell.tg-widget-compact,
+.tg-widget-shell.tg-widget-narrow {
+	.tg-widget-calendar-full {
+		display: none !important;
+	}
+
+	.tg-widget-calendar-mini,
+	.tg-widget-calendar-mini-tasks {
+		display: block !important;
+	}
+}
+
+.tg-widget-shell.tg-widget-medium,
+.tg-widget-shell.tg-widget-wide {
+	.tg-widget-calendar-mini,
+	.tg-widget-calendar-mini-tasks {
+		display: none !important;
+	}
+
+	.tg-widget-calendar-full {
+		display: flex !important;
+	}
+}
+
+// ============================================
+// Tasks Widget
+// ============================================
+
+.tg-tasks-toolbar {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 10px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tg-tasks-toolbar-label {
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+/* .tg-tasks-group-select {
+	font-size: 11px;
+	padding: 2px 6px;
+	border-radius: 4px;
+	background: var(--background-secondary);
+	border: 1px solid var(--background-modifier-border);
+	color: var(--text-normal);
+} */
+
+.tg-tasks-container {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.tg-tasks-group {
+	border-radius: 6px;
+	overflow: hidden;
+}
+
+.tg-tasks-group-header {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 8px;
+	background: var(--background-secondary);
+	cursor: pointer;
+	user-select: none;
+	border-radius: 6px;
+
+	&:hover {
+		background: var(--background-modifier-hover);
+	}
+}
+
+.tg-tasks-group-chevron {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	color: var(--text-muted);
+}
+
+.tg-tasks-group-title {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-normal);
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tg-tasks-group-count {
+	font-size: 11px;
+	color: var(--text-muted);
+	background: var(--background-primary);
+	padding: 1px 6px;
+	border-radius: 10px;
+}
+
+.tg-tasks-group-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 4px 0;
+}
+
+.tg-tasks-item {
+	display: grid;
+	grid-template-columns: 18px 1fr;
+	align-items: start;
+	gap: 8px;
+	padding: 6px 8px;
+	border-radius: 4px;
+
+	&:hover {
+		background: var(--background-modifier-hover);
+	}
+}
+
+.tg-tasks-item-content {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+.tg-tasks-item-title {
+	font-size: 12px;
+	color: var(--text-normal);
+	cursor: pointer;
+	word-wrap: break-word;
+
+	&:hover {
+		color: var(--text-accent);
+	}
+}
+
+.tg-tasks-item-meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.tg-tasks-item-due {
+	font-size: 10px;
+	color: var(--text-muted);
+
+	&.is-overdue {
+		color: var(--color-red);
+	}
+}
+
+.tg-tasks-item-priority {
+	font-size: 10px;
+}
+
+// ============================================
+// Projects Widget
+// ============================================
+
+.tg-projects-container {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.tg-projects-grid {
+	display: grid;
+	gap: 8px;
+
+	&.tg-projects-grid-wide {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	&.tg-projects-grid-medium {
+		grid-template-columns: repeat(2, 1fr);
+	}
+
+	&.tg-projects-grid-narrow,
+	&.tg-projects-grid-compact {
+		grid-template-columns: 1fr;
+	}
+}
+
+.tg-projects-card {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px;
+	background: var(--background-secondary);
+	border-radius: 8px;
+	cursor: pointer;
+	transition: background 0.15s ease;
+	border: 1px solid transparent;
+
+	&:hover {
+		background: var(--background-modifier-hover);
+	}
+
+	&.is-selected {
+		border-color: var(--interactive-accent);
+		background: var(--background-modifier-hover);
+	}
+}
+
+.tg-projects-card-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.tg-projects-card-name {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-normal);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	flex: 1;
+}
+
+.tg-projects-card-overdue {
+	font-size: 10px;
+	color: var(--color-red);
+	white-space: nowrap;
+}
+
+.tg-projects-card-progress {
+	width: 100%;
+}
+
+.tg-projects-progress-track {
+	height: 4px;
+	background: var(--background-primary);
+	border-radius: 2px;
+	overflow: hidden;
+}
+
+.tg-projects-progress-fill {
+	height: 100%;
+	background: var(--interactive-accent);
+	border-radius: 2px;
+	transition: width 0.3s ease;
+
+	&.is-complete {
+		background: var(--color-green);
+	}
+
+	&.has-overdue {
+		background: var(--color-orange);
+	}
+}
+
+.tg-projects-card-stats {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.tg-projects-card-stat {
+	font-size: 10px;
+	color: var(--text-muted);
+}
+
+.tg-projects-card-percent {
+	font-size: 10px;
+	font-weight: 500;
+	color: var(--text-normal);
+}
+
+// ============================================
+// Kanban Widget
+// ============================================
+
+.tg-kanban-container {
+	height: 100%;
+	min-height: 0;
+}
+
+.tg-kanban-board {
+	display: flex;
+	gap: 10px;
+	height: 100%;
+	min-height: 200px;
+
+	&.is-horizontal {
+		flex-direction: row;
+		overflow-x: auto;
+	}
+
+	&.is-vertical {
+		flex-direction: column;
+		overflow-y: auto;
+	}
+}
+
+.tg-kanban-column {
+	display: flex;
+	flex-direction: column;
+	min-width: 180px;
+	max-width: 280px;
+	flex: 1;
+	background: var(--background-secondary);
+	border-radius: 8px;
+	overflow: hidden;
+
+	.is-vertical & {
+		max-width: none;
+		min-width: 0;
+	}
+}
+
+.tg-kanban-column-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 8px 10px;
+	border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tg-kanban-column-title {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.5px;
+}
+
+.tg-kanban-column-count {
+	font-size: 10px;
+	color: var(--text-faint);
+	background: var(--background-primary);
+	padding: 1px 6px;
+	border-radius: 10px;
+}
+
+.tg-kanban-column-list {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px;
+	flex: 1;
+	overflow-y: auto;
+	min-height: 60px;
+
+	.is-vertical & {
+		flex-direction: row;
+		overflow-x: auto;
+		overflow-y: hidden;
+		flex-wrap: nowrap;
+	}
+}
+
+.tg-kanban-card {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px 10px;
+	background: var(--background-primary);
+	border-radius: 6px;
+	border: 1px solid var(--background-modifier-border);
+	cursor: grab;
+	transition:
+		box-shadow 0.15s ease,
+		transform 0.15s ease;
+
+	.is-vertical & {
+		min-width: 140px;
+		flex-shrink: 0;
+	}
+
+	&:hover {
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+	}
+
+	&:active {
+		cursor: grabbing;
+	}
+}
+
+.tg-kanban-card-ghost {
+	opacity: 0.4;
+}
+
+.tg-kanban-card-chosen {
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+	transform: rotate(2deg);
+}
+
+.tg-kanban-card-drag {
+	opacity: 1;
+}
+
+.tg-kanban-card-content {
+	cursor: pointer;
+}
+
+.tg-kanban-card-title {
+	font-size: 12px;
+	color: var(--text-normal);
+	word-wrap: break-word;
+	line-height: 1.4;
+
+	&:hover {
+		color: var(--text-accent);
+	}
+}
+
+.tg-kanban-card-meta {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.tg-kanban-card-project {
+	font-size: 10px;
+	color: var(--text-muted);
+	background: var(--background-secondary);
+	padding: 1px 5px;
+	border-radius: 3px;
+}
+
+.tg-kanban-card-due {
+	font-size: 10px;
+	color: var(--text-muted);
+
+	&.is-overdue {
+		color: var(--color-red);
+	}
+}
+
+.tg-kanban-card-tags {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	flex-wrap: wrap;
+}
+
+.tg-kanban-card-tag {
+	font-size: 9px;
+	color: var(--text-muted);
+	background: var(--background-secondary);
+	padding: 1px 4px;
+	border-radius: 3px;
+
+	&.tg-kanban-card-tag-more {
+		color: var(--text-faint);
+	}
+}

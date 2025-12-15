@@ -53,3 +53,4 @@ packages/*/node_modules
 
 # Documentation site (separate repository)
 docs-site
+PLAN.md

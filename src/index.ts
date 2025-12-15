@@ -83,6 +83,7 @@ import "./styles/onboarding.scss";
 import "./styles/universal-suggest.scss";
 import "./styles/noise.scss";
 import "./styles/changelog.scss";
+import "./styles/widgets.scss";
 
 import {
 	TASK_SPECIFIC_VIEW_TYPE,
@@ -114,6 +115,11 @@ import DesktopIntegrationManager from "./managers/desktop-integration-manager";
 import { OnboardingConfigManager } from "./managers/onboarding-manager";
 import { OnCompletionManager } from "./managers/completion-manager";
 import { SettingsChangeDetector } from "./services/settings-change-detector";
+import {
+	registerWidgetCommands,
+	registerWidgetViews,
+} from "./widgets/registerWidgets";
+import { registerWidgetCodeBlock } from "./widgets/codeblock/WidgetCodeBlockProcessor";
 import {
 	ONBOARDING_VIEW_TYPE,
 	OnboardingView,
@@ -534,6 +540,12 @@ export default class TaskProgressBarPlugin extends Plugin {
 		} catch (error) {
 			console.log("Failed to register Bases views:", error);
 		}
+
+		try {
+			registerWidgetViews(this);
+		} catch (error) {
+			console.log("Failed to register Widget views:", error);
+		}
 	}
 
 	private registerOnboardingView(): void {
@@ -610,6 +622,21 @@ export default class TaskProgressBarPlugin extends Plugin {
 				this.openSettingsModal();
 			},
 		});
+
+		try {
+			registerWidgetCommands(this);
+		} catch (error) {
+			console.log("Failed to register Widget commands:", error);
+		}
+
+		try {
+			registerWidgetCodeBlock(this);
+		} catch (error) {
+			console.log(
+				"Failed to register Widget codeblock processor:",
+				error,
+			);
+		}
 	}
 
 	private deferIconRegistration(): void {

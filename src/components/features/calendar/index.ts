@@ -120,6 +120,9 @@ export class CalendarComponent extends Component {
 			onTaskSelected?: (task: Task | null) => void;
 			onTaskCompleted?: (task: Task) => void;
 			onEventContextMenu?: (ev: MouseEvent, event: CalendarEvent) => void;
+			onViewModeChange?: (viewMode: CalendarViewMode) => void;
+			persistViewMode?: boolean;
+			viewModeStorageKey?: string;
 		} = {},
 		private viewId: string = "calendar",
 	) {
@@ -134,16 +137,45 @@ export class CalendarComponent extends Component {
 			"calendar-view-container",
 		);
 
-		// Load saved view mode
-		const savedView = this.app.loadLocalStorage(
-			"task-genius:calendar-view",
-		);
-		if (savedView) {
-			this.currentViewMode = savedView as CalendarViewMode;
-		}
+		this.loadSavedViewMode();
 
 		// Initialize view registry with custom views (agenda, year)
 		this.initializeViewRegistry();
+	}
+
+	private shouldPersistViewMode(): boolean {
+		return this.params.persistViewMode ?? true;
+	}
+
+	private getViewModeStorageKey(): string {
+		return (
+			this.params.viewModeStorageKey ??
+			`task-genius:calendar-view:${this.viewId}`
+		);
+	}
+
+	private loadSavedViewMode(): void {
+		if (!this.shouldPersistViewMode()) {
+			return;
+		}
+
+		const storageKey = this.getViewModeStorageKey();
+		const savedView =
+			this.app.loadLocalStorage(storageKey) ??
+			(this.viewId === "calendar"
+				? this.app.loadLocalStorage("task-genius:calendar-view")
+				: null);
+
+		if (savedView) {
+			this.currentViewMode = savedView as CalendarViewMode;
+
+			if (
+				this.viewId === "calendar" &&
+				storageKey !== "task-genius:calendar-view"
+			) {
+				this.app.saveLocalStorage(storageKey, savedView);
+			}
+		}
 	}
 
 	/**
@@ -235,10 +267,23 @@ export class CalendarComponent extends Component {
 	 * Save the current view mode to localStorage
 	 */
 	private saveCurrentViewMode() {
-		this.app.saveLocalStorage(
-			"task-genius:calendar-view",
-			this.currentViewMode,
-		);
+		this.params.onViewModeChange?.(this.currentViewMode);
+		if (!this.shouldPersistViewMode()) {
+			return;
+		}
+
+		const storageKey = this.getViewModeStorageKey();
+		this.app.saveLocalStorage(storageKey, this.currentViewMode);
+
+		if (
+			this.viewId === "calendar" &&
+			storageKey !== "task-genius:calendar-view"
+		) {
+			this.app.saveLocalStorage(
+				"task-genius:calendar-view",
+				this.currentViewMode,
+			);
+		}
 	}
 
 	public navigate(direction: "prev" | "next") {
