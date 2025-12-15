@@ -4,6 +4,12 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.14.0-beta.3](///compare/9.14.0-beta.2...9.14.0-beta.3) (2025-12-15)
+
+### Features
+
+* **widgets:** add embeddable widget system with codeblock support bb3cc33
+
 ## [9.14.0-beta.2](///compare/9.14.0-beta.1...9.14.0-beta.2) (2025-12-14)
 
 ### Features
