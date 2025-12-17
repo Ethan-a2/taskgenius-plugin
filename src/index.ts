@@ -103,6 +103,7 @@ import { taskGutterExtension } from "./editor-extensions/task-operations/gutter-
 import { autoDateManagerExtension } from "./editor-extensions/date-time/date-manager";
 import { taskMarkCleanupExtension } from "./editor-extensions/task-operations/mark-cleanup";
 import { IcsManager } from "./managers/ics-manager";
+import { CalendarAuthManager } from "./managers/calendar-auth-manager";
 import { FluentIntegration } from "./components/features/fluent/FluentIntegration";
 import { ObsidianUriHandler } from "./utils/ObsidianUriHandler";
 import {
@@ -171,6 +172,9 @@ export default class TaskProgressBarPlugin extends Plugin {
 
 	// ICS manager instance
 	icsManager: IcsManager;
+
+	// Calendar auth manager instance (for OAuth providers)
+	calendarAuthManager?: CalendarAuthManager;
 
 	// Minimal quick capture suggest
 	minimalQuickCaptureSuggest: MinimalQuickCaptureSuggest;
@@ -417,12 +421,19 @@ export default class TaskProgressBarPlugin extends Plugin {
 				this.addChild(this.habitManager);
 			}
 
+			// Initialize Calendar Auth Manager for OAuth providers
+			this.calendarAuthManager = new CalendarAuthManager();
+			this.addChild(this.calendarAuthManager);
+			this.calendarAuthManager.registerProtocolHandler(this);
+
 			// Initialize ICS manager if sources are configured
 			if (this.settings.icsIntegration.sources.length > 0) {
 				this.icsManager = new IcsManager(
 					this.settings.icsIntegration,
 					this.settings,
 					this,
+					undefined, // timeParsingService
+					this.calendarAuthManager, // Pass auth manager for OAuth providers
 				);
 				this.addChild(this.icsManager);
 
@@ -2136,6 +2147,13 @@ export default class TaskProgressBarPlugin extends Plugin {
 	 */
 	getIcsManager(): IcsManager | undefined {
 		return this.icsManager;
+	}
+
+	/**
+	 * Get the Calendar Auth Manager instance
+	 */
+	getAuthManager(): CalendarAuthManager | undefined {
+		return this.calendarAuthManager;
 	}
 
 	/**
