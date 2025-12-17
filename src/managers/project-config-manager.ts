@@ -527,21 +527,9 @@ export class ProjectConfigManager {
 			}
 		}
 
-		// 4. Apply default project naming strategy (lowest priority)
-		if (this.defaultProjectNaming.enabled) {
-			const defaultProject = this.generateDefaultProjectName(filePath);
-			if (defaultProject) {
-				// Normalize default project name as well
-				const normalizedName =
-					this.normalizeProjectPath(defaultProject);
-				return {
-					type: "default",
-					name: normalizedName,
-					source: this.defaultProjectNaming.strategy,
-					readonly: true,
-				};
-			}
-		}
+		// NOTE: defaultProjectNaming fallback removed - it should only apply to File Source scenarios
+		// (files recognized as tasks/projects), not to all files with inline tasks.
+		// This prevents Inbox from being empty due to all tasks having auto-assigned projects.
 
 		return undefined;
 	}

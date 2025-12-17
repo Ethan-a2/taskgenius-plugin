@@ -341,6 +341,11 @@ export class WriteAPI {
 				);
 			}
 
+			// Handle ICS (calendar) tasks differently
+			if (this.isIcsTask(originalTask)) {
+				return this.updateIcsTask(originalTask, args.updates);
+			}
+
 			const file = this.vault.getAbstractFileByPath(
 				originalTask.filePath,
 			) as TFile;
@@ -2990,6 +2995,188 @@ export class WriteAPI {
 			const month = tomorrow.getMonth();
 			const day = tomorrow.getDate();
 			return Date.UTC(year, month, day, 12, 0, 0);
+		}
+	}
+
+	// =========================================================================
+	// ICS Task Support (Two-Way Sync with Calendar Providers)
+	// =========================================================================
+
+	/**
+	 * Check if a task is an ICS (calendar) task
+	 */
+	isIcsTask(task: Task): boolean {
+		// ICS tasks have IDs starting with "ics-" or have icsEvent property
+		// Also check for ics:// protocol in filePath
+		return (
+			task.id.startsWith("ics-") ||
+			task.filePath.startsWith("ics://") ||
+			(task as any).icsEvent !== undefined
+		);
+	}
+
+	/**
+	 * Update an ICS task through the calendar provider
+	 * This handles two-way sync with Google, Outlook, and Apple calendars
+	 */
+	private async updateIcsTask(
+		originalTask: Task,
+		updates: Partial<Task>,
+	): Promise<{ success: boolean; task?: Task; error?: string }> {
+		try {
+			// Get IcsManager from plugin
+			const icsManager = this.plugin.icsManager;
+			if (!icsManager) {
+				return {
+					success: false,
+					error: "ICS Manager not initialized",
+				};
+			}
+
+			// Extract source ID from task
+			// ICS task ID format: ics-{sourceId}-{eventUid}
+			const icsTask = originalTask as any;
+			const sourceId = icsTask.source?.id;
+
+			if (!sourceId) {
+				// Try to extract from task ID
+				const idMatch = originalTask.id.match(/^ics-([^-]+)-/);
+				if (!idMatch) {
+					return {
+						success: false,
+						error: "Cannot determine ICS source from task",
+					};
+				}
+			}
+
+			const effectiveSourceId = sourceId || originalTask.id.split("-")[1];
+
+			// Check if this source supports write operations
+			if (!icsManager.supportsWrite(effectiveSourceId)) {
+				return {
+					success: false,
+					error: "This calendar source is read-only (ICS URL sources do not support editing)",
+				};
+			}
+
+			// Get the original ICS event
+			const icsEvent = icsTask.icsEvent;
+			if (!icsEvent) {
+				return {
+					success: false,
+					error: "ICS event data not found on task",
+				};
+			}
+
+			// Build updated event from task updates
+			const updatedEvent = { ...icsEvent };
+
+			// Map task updates to ICS event fields
+			if (updates.content !== undefined) {
+				updatedEvent.summary = updates.content;
+			}
+
+			if (updates.metadata) {
+				const md = updates.metadata;
+
+				// Update dates if provided
+				if (md.startDate !== undefined) {
+					updatedEvent.dtstart = md.startDate
+						? new Date(md.startDate)
+						: icsEvent.dtstart;
+				}
+				if (
+					md.dueDate !== undefined ||
+					md.scheduledDate !== undefined
+				) {
+					const endTimestamp = md.dueDate || md.scheduledDate;
+					if (endTimestamp) {
+						updatedEvent.dtend = new Date(endTimestamp);
+					}
+				}
+
+				// Update location/context
+				if (md.context !== undefined) {
+					updatedEvent.location = md.context || undefined;
+				}
+
+				// Update description (could map from notes if we had them)
+				// For now, preserve existing description
+			}
+
+			// Handle status/completion changes
+			if (
+				updates.completed !== undefined ||
+				updates.status !== undefined
+			) {
+				// Map task completion to ICS status
+				const isCompleted =
+					updates.completed ??
+					(updates.status === "x" ||
+						updates.status ===
+							this.plugin.settings.taskStatuses?.completed?.split(
+								"|",
+							)[0]);
+
+				if (isCompleted) {
+					updatedEvent.status = "COMPLETED";
+				} else if (updates.status === "-") {
+					updatedEvent.status = "CANCELLED";
+				} else {
+					updatedEvent.status = "CONFIRMED";
+				}
+			}
+
+			// Call IcsManager to update the event
+			const result = await icsManager.updateEvent(effectiveSourceId, {
+				event: updatedEvent,
+				originalEvent: icsEvent,
+				calendarId: icsEvent.providerCalendarId,
+			});
+
+			if (!result.success) {
+				// Handle conflict case
+				if (result.conflict) {
+					return {
+						success: false,
+						error: "Event was modified by another client. Please refresh and try again.",
+					};
+				}
+				return {
+					success: false,
+					error: result.error || "Failed to update calendar event",
+				};
+			}
+
+			// Build the updated task object
+			const updatedTask: Task = {
+				...originalTask,
+				...updates,
+				metadata: {
+					...originalTask.metadata,
+					...(updates.metadata || {}),
+				},
+			};
+
+			// Update icsEvent on the task if we got a new one back
+			if (result.event) {
+				(updatedTask as any).icsEvent = result.event;
+			}
+
+			console.log(
+				`[WriteAPI] Successfully updated ICS task ${originalTask.id}`,
+			);
+
+			return { success: true, task: updatedTask };
+		} catch (error) {
+			console.error("[WriteAPI] Error updating ICS task:", error);
+			return {
+				success: false,
+				error:
+					error instanceof Error
+						? error.message
+						: "Unknown error updating calendar event",
+			};
 		}
 	}
 }
