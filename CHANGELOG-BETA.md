@@ -4,6 +4,16 @@ All notable changes to beta releases will be documented in this file.
 
 
 
+## [9.14.0-beta.4](///compare/9.14.0-beta.3...9.14.0-beta.4) (2026-01-05)
+
+### Features
+
+* **calendar:** add Apple CalDAV two-way sync with write operations 97f28e7
+* **calendar:** add Google/Outlook Calendar OAuth integration cfa4671
+* **dataflow:** enhance WriteAPI and project data handling 3d4c4ed
+* **ics:** enhance ICS calendar integration c456c38
+* integrate calendar auth manager and update styles 5610bc4
+
 ## [9.14.0-beta.3](///compare/9.14.0-beta.2...9.14.0-beta.3) (2025-12-15)
 
 ### Features
