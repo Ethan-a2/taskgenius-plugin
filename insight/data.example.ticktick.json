@@ -1,0 +1,196 @@
+{
+  "viewConfiguration": [
+    {
+      "id": "table",
+      "name": "Table",
+      "icon": "table",
+      "type": "default",
+      "visible": true,
+      "hideCompletedAndAbandonedTasks": true,
+      "filterBlanks": true,
+      "filterRules": {},
+      "sortCriteria": [{ "field": "dueDate", "order": "asc" }],
+      "specificConfig": {
+        "viewType": "table",
+        "enableTreeView": false,
+        "enableLazyLoading": true,
+        "pageSize": 50,
+        "enableInlineEditing": true,
+        "visibleColumns": [
+          "status",
+          "content",
+          "dueDate",
+          "priority",
+          "tags",
+          "project",
+          "filePath"
+        ],
+        "columnWidths": {
+          "status": 80,
+          "content": 300,
+          "dueDate": 120,
+          "priority": 100,
+          "tags": 150,
+          "project": 150,
+          "filePath": 200
+        },
+        "sortableColumns": true,
+        "resizableColumns": true,
+        "showRowNumbers": true,
+        "enableRowSelection": true,
+        "enableMultiSelect": true,
+        "defaultSortField": "dueDate",
+        "defaultSortOrder": "asc"
+      },
+      "region": "top"
+    },
+    {
+      "id": "kanban",
+      "name": "Status",
+      "icon": "kanban",
+      "type": "default",
+      "visible": true,
+      "hideCompletedAndAbandonedTasks": true,
+      "filterBlanks": false,
+      "filterRules": {},
+      "sortCriteria": [{ "field": "priority", "order": "desc" }],
+      "specificConfig": {
+        "viewType": "kanban",
+        "showCheckbox": true,
+        "hideEmptyColumns": true,
+        "defaultSortField": "priority",
+        "defaultSortOrder": "desc",
+        "groupBy": "status"
+      },
+      "region": "bottom"
+    },
+    {
+      "id": "calendar",
+      "name": "Calendar",
+      "icon": "calendar",
+      "type": "default",
+      "visible": true,
+      "hideCompletedAndAbandonedTasks": true,
+      "filterBlanks": false,
+      "filterRules": {},
+      "specificConfig": {
+        "viewType": "calendar",
+        "firstDayOfWeek": 1,
+        "hideWeekends": false,
+        "showWorkingHoursOnly": true,
+        "workingHoursStart": 9,
+        "workingHoursEnd": 18
+      },
+      "region": "bottom"
+    }
+  ],
+  "taskFilter": {
+    "enableTaskFilter": true,
+    "presetTaskFilters": [
+      {
+        "id": "today",
+        "name": "今天",
+        "options": {
+          "includeCompleted": false,
+          "includeInProgress": true,
+          "includeAbandoned": false,
+          "includeNotStarted": true,
+          "includePlanned": true,
+          "includeParentTasks": true,
+          "includeChildTasks": true,
+          "includeSiblingTasks": false,
+          "advancedFilterQuery": "due=today OR start=today",
+          "filterMode": "INCLUDE"
+        }
+      },
+      {
+        "id": "next7d",
+        "name": "未来7天",
+        "options": {
+          "includeCompleted": false,
+          "includeInProgress": true,
+          "includeAbandoned": false,
+          "includeNotStarted": true,
+          "includePlanned": true,
+          "includeParentTasks": true,
+          "includeChildTasks": false,
+          "includeSiblingTasks": false,
+          "advancedFilterQuery": "due<=+7d OR start<=+7d",
+          "filterMode": "INCLUDE"
+        }
+      },
+      {
+        "id": "overdue",
+        "name": "逾期",
+        "options": {
+          "includeCompleted": false,
+          "includeInProgress": true,
+          "includeAbandoned": false,
+          "includeNotStarted": true,
+          "includePlanned": true,
+          "includeParentTasks": true,
+          "includeChildTasks": false,
+          "includeSiblingTasks": false,
+          "advancedFilterQuery": "due<today",
+          "filterMode": "INCLUDE"
+        }
+      },
+      {
+        "id": "high-priority",
+        "name": "高优先级",
+        "options": {
+          "includeCompleted": false,
+          "includeInProgress": true,
+          "includeAbandoned": false,
+          "includeNotStarted": true,
+          "includePlanned": true,
+          "includeParentTasks": true,
+          "includeChildTasks": false,
+          "includeSiblingTasks": false,
+          "advancedFilterQuery": "priority>=3",
+          "filterMode": "INCLUDE"
+        }
+      }
+    ]
+  },
+  "statusConfig": {
+    "completed": "x",
+    "inProgress": "/",
+    "abandoned": "-",
+    "planned": "+",
+    "notStarted": " "
+  },
+  "completedTaskMover": {
+    "enableCompletedTaskMover": true,
+    "taskMarkerType": "date",
+    "dateMarker": "completed on {{DATE:YYYY-MM-DD}}",
+    "treatAbandonedAsCompleted": false,
+    "completeAllMovedTasks": true,
+    "withCurrentFileLink": true,
+    "enableAutoMove": true,
+    "defaultTargetFile": "Archive/Completed Tasks.md",
+    "defaultInsertionMode": "end",
+    "defaultHeadingName": "Completed Tasks"
+  },
+  "quickCapture": {
+    "enableQuickCapture": true,
+    "targetFile": "Inbox.md",
+    "placeholder": "快速捕获你的任务...",
+    "appendToFile": "append",
+    "targetType": "fixed",
+    "enableMinimalMode": true,
+    "minimalModeSettings": { "suggestTrigger": "@" },
+    "autoAddTaskPrefix": true,
+    "taskPrefix": "- [ ] "
+  },
+  "fileFilter": {
+    "enabled": true,
+    "mode": "whitelist",
+    "rules": [
+      { "type": "folder", "path": "Tasks", "enabled": true },
+      { "type": "folder", "path": "Projects", "enabled": true },
+      { "type": "file", "path": "Inbox.md", "enabled": true }
+    ],
+    "scopeControls": { "inlineTasksEnabled": true, "fileTasksEnabled": true }
+  }
+}
