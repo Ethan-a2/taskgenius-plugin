@@ -3,3 +3,7 @@ packages:
 
 onlyBuiltDependencies:
     - esbuild
+    - "@codemirror/language"
+    - "@codemirror/lint"
+    - "@codemirror/view"
+    - "@codemirror/state"
